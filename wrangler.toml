@@ -1,0 +1,10 @@
+name = "finanzas-empresas"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "./dist"
+
+# D1 database binding. database_id comes from `wrangler d1 create finanzas-db`
+# (or Cloudflare → Storage & Databases → D1). See README.
+[[d1_databases]]
+binding = "DB"
+database_name = "finanzas-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
