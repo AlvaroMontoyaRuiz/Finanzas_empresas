@@ -7,4 +7,4 @@ pages_build_output_dir = "./dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "finanzas-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "df8c7d45-1f5d-4b15-9b62-1f95094f4896"
