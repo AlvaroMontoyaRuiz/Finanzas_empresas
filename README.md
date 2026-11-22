@@ -1,7 +1,7 @@
 # 💼 Finanzas Empresas
 
 Web app to record and visualize **income (ingresos)** and **expenses (gastos)** of the owner's four businesses:
-**Finca, Carnicería, Camión and Palmiste**. The whole interface is in Spanish (Colombia, pesos COP).
+**Finca, Carnicería, Camión, Palmiste and Fruver**. The whole interface is in Spanish (Colombia, pesos COP).
 Same stack and look as [Farm_dashboard](https://github.com/AlvaroMontoyaRuiz/Farm_dashboard).
 
 ## What it does

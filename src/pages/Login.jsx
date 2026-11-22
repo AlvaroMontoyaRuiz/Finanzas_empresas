@@ -63,7 +63,7 @@ export default function Login({ onLogin }) {
       <div className="mt-6 rounded-xl bg-field px-4 py-3 text-sm text-ink-soft space-y-1.5">
         <p className="font-semibold text-ink">¿Qué puede hacer cada rol?</p>
         <p>
-          <b className="text-ink">Administrador:</b> ve los paneles, los impuestos y todo lo que se registra en las 4 empresas.
+          <b className="text-ink">Administrador:</b> ve los paneles, los impuestos y todo lo que se registra en todas las empresas.
         </p>
         <p>
           <b className="text-ink">Usuario:</b> registra ingresos y gastos, y marca como pagadas las ventas pendientes.

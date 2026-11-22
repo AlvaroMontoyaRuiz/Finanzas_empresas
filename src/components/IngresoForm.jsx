@@ -316,7 +316,7 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
           </div>
 
           <Field label="Concepto / origen del ingreso" htmlFor="i-concepto" hint="Qué se vendió o de dónde salió el dinero.">
-            <input id="i-concepto" className="field" list="dl-conc-ing" value={f.concepto} onChange={set('concepto')} placeholder="Ej: Venta de carne de res, flete, venta de palmiste" />
+            <input id="i-concepto" className="field" list="dl-conc-ing" value={f.concepto} onChange={set('concepto')} placeholder="Ej: Venta de carne de res, flete, venta de palmiste, venta de frutas y verduras" />
             <DataList id="dl-conc-ing" items={sug.conceptosIng} />
           </Field>
 

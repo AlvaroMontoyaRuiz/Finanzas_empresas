@@ -34,7 +34,8 @@ export const SCHEMA = [
      (1, 'finca', 'Finca', '#1F7A4D', 0, 1),
      (2, 'carniceria', 'Carnicería', '#C94F7C', 1, 2),
      (3, 'camion', 'Camión', '#2A78D6', 0, 3),
-     (4, 'palmiste', 'Palmiste', '#C77A0A', 0, 4)`,
+     (4, 'palmiste', 'Palmiste', '#C77A0A', 0, 4),
+     (5, 'fruver', 'Fruver', '#7A4BC2', 0, 5)`,
 
   // Income. total = cantidad × precio_unitario (pesos colombianos).
   `CREATE TABLE IF NOT EXISTS ingresos (
