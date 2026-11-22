@@ -39,7 +39,13 @@ export const MEDIOS_PAGO = [
   ['credito', 'Crédito'],
   ['otro', 'Otro'],
 ];
-export const medioLabel = (m) => (MEDIOS_PAGO.find((x) => x[0] === m) || [null, ''])[1];
+// Companies that only record the total of the day (Carnicería): how the money came in.
+export const MEDIOS_DIA = [
+  ['efectivo', 'Efectivo'],
+  ['nequi', 'Nequi'],
+  ['desposte', 'Desposte'],
+];
+export const medioLabel = (m) => ([...MEDIOS_PAGO, ...MEDIOS_DIA].find((x) => x[0] === m) || [null, ''])[1];
 
 export const UNIDADES = ['unidad', 'kg', 'libra', 'arroba', 'tonelada', 'litro', 'galón', 'bulto', 'viaje', 'cabeza', 'hora', 'día', 'mes', 'servicio'];
 

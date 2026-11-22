@@ -2,31 +2,48 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, qs } from '../lib/api.js';
 import { useApp } from '../App.jsx';
 import { cop, num, shortDay, daysSince, localToday } from '../lib/format.js';
-import { Panel, PageHeader, Skeleton, EmpresaTag, EstadoBadge } from '../components/ui.jsx';
+import { Panel, PageHeader, Skeleton, EmpresaTag, EstadoBadge, Segmented } from '../components/ui.jsx';
 import PagoButton from '../components/Pago.jsx';
 
-// Sales still waiting to be paid (Carnicería, or any company with that option on).
+// Who owes what. For Carnicería these are the despostes: each one stays here until it is marked as paid.
+// Rows without a client (daily totals) are identified by their concept ("Desposte") and note.
+const quien = (r) => r.cliente || r.concepto;
+const detalle = (r) =>
+  [r.cliente ? r.concepto : null, r.cliente ? `${num(r.cantidad)} ${r.unidad || ''}`.trim() : null, r.nota, shortDay(r.fecha)].filter(Boolean).join(' · ');
+
 export default function PorCobrar() {
   const { empresas } = useApp();
   const conPendientes = empresas.filter((e) => e.cobra_pendientes);
   const [empresa, setEmpresa] = useState(0);
+  const [vista, setVista] = useState('pendientes'); // 'pendientes' | 'pagados'
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState('');
 
   const load = useCallback(() => {
+    setErr('');
+    const pend = vista === 'pendientes';
     api
-      .get('/api/ingresos' + qs({ estado: 'pendiente', empresa }))
-      .then((r) => setRows([...r.rows].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a.id - b.id))))
+      .get('/api/ingresos' + qs(pend ? { estado: 'pendiente', empresa } : { cobrados: 1, empresa, limit: 300 }))
+      .then((r) =>
+        setRows(
+          pend
+            ? [...r.rows].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a.id - b.id))
+            : [...r.rows].sort((a, b) => ((b.fecha_pago || '') < (a.fecha_pago || '') ? -1 : 1))
+        )
+      )
       .catch((e) => setErr(e.message));
-  }, [empresa]);
-  useEffect(load, [load]);
+  }, [empresa, vista]);
+  useEffect(() => {
+    setRows(null);
+    load();
+  }, [load]);
 
   const hoy = localToday();
   const resumen = useMemo(() => {
     if (!rows) return null;
-    const porCliente = {};
+    const porQuien = {};
     for (const r of rows) {
-      const c = (porCliente[r.cliente] ||= { cliente: r.cliente, n: 0, total: 0, desde: r.fecha });
+      const c = (porQuien[quien(r)] ||= { nombre: quien(r), n: 0, total: 0, desde: r.fecha });
       c.n++;
       c.total += r.total;
       if (r.fecha < c.desde) c.desde = r.fecha;
@@ -36,38 +53,52 @@ export default function PorCobrar() {
       total: rows.reduce((s, r) => s + r.total, 0),
       vencidas: vencidas.length,
       totalVencido: vencidas.reduce((s, r) => s + r.total, 0),
-      clientes: Object.values(porCliente).sort((a, b) => b.total - a.total),
+      grupos: Object.values(porQuien).sort((a, b) => b.total - a.total),
     };
   }, [rows, hoy]);
+
+  const pendientes = vista === 'pendientes';
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Por cobrar"
-        subtitle="Ventas que todavía no se han pagado. Cuando el cliente pague, toca “Marcar pagado”."
+        subtitle="Los despostes y ventas que todavía no se han pagado. Cuando te paguen, toca “Marcar pagado”."
         action={
-          conPendientes.length > 1 && (
-            <select className="field !w-auto" value={empresa} onChange={(e) => setEmpresa(Number(e.target.value))} aria-label="Empresa">
-              <option value={0}>Todas</option>
-              {conPendientes.map((e) => (
-                <option key={e.id} value={e.id}>{e.nombre}</option>
-              ))}
-            </select>
-          )
+          <div className="flex flex-wrap items-center gap-3">
+            <Segmented
+              label="Ver"
+              value={vista}
+              onChange={setVista}
+              large
+              options={[
+                { value: 'pendientes', label: 'Pendientes' },
+                { value: 'pagados', label: 'Ya pagados' },
+              ]}
+            />
+            {conPendientes.length > 1 && (
+              <select className="field !w-auto" value={empresa} onChange={(e) => setEmpresa(Number(e.target.value))} aria-label="Empresa">
+                <option value={0}>Todas</option>
+                {conPendientes.map((e) => (
+                  <option key={e.id} value={e.id}>{e.nombre}</option>
+                ))}
+              </select>
+            )}
+          </div>
         }
       />
 
       {err && <p className="text-alert text-sm">No se pudo cargar: {err}</p>}
       {!rows && !err && <Skeleton className="h-40" />}
 
-      {resumen && (
+      {resumen && pendientes && (
         <div className="grid sm:grid-cols-3 gap-4">
           <Tile label="Total por cobrar" value={cop(resumen.total)} tone="text-warn" />
-          <Tile label="Ventas pendientes" value={num(rows.length)} sub={`${num(resumen.clientes.length)} ${resumen.clientes.length === 1 ? 'cliente' : 'clientes'}`} />
+          <Tile label="Pendientes" value={num(rows.length)} sub={`${num(resumen.grupos.length)} ${resumen.grupos.length === 1 ? 'origen' : 'orígenes'}`} />
           <Tile
-            label="Vencidas"
+            label="Con fecha vencida"
             value={num(resumen.vencidas)}
-            sub={resumen.vencidas ? cop(resumen.totalVencido) : 'Ninguna pasó su fecha límite'}
+            sub={resumen.vencidas ? cop(resumen.totalVencido) : 'Ninguno pasó la fecha esperada'}
             tone={resumen.vencidas ? 'text-alert' : ''}
           />
         </div>
@@ -76,22 +107,22 @@ export default function PorCobrar() {
       {rows && rows.length === 0 && (
         <Panel>
           <p className="text-center py-8 text-ink-soft">
-            <span className="block text-3xl mb-2" aria-hidden>✓</span>
-            No hay ventas pendientes. Todo está cobrado.
+            <span className="block text-3xl mb-2" aria-hidden>{pendientes ? '✓' : '·'}</span>
+            {pendientes ? 'No hay nada pendiente. Todo está cobrado.' : 'Todavía no hay despostes ni ventas cobradas.'}
           </p>
         </Panel>
       )}
 
-      {rows && rows.length > 0 && (
+      {rows && rows.length > 0 && pendientes && (
         <div className="grid lg:grid-cols-[1fr_2fr] gap-5 items-start">
-          <Panel title="Por cliente" subtitle="Quién debe y cuánto">
+          <Panel title="Resumen" subtitle="Cuánto hay pendiente por cada origen">
             <ul className="divide-y divide-line">
-              {resumen.clientes.map((c) => (
-                <li key={c.cliente} className="py-2.5 flex items-center justify-between gap-3">
+              {resumen.grupos.map((c) => (
+                <li key={c.nombre} className="py-2.5 flex items-center justify-between gap-3">
                   <div>
-                    <div className="font-medium">{c.cliente}</div>
+                    <div className="font-medium">{c.nombre}</div>
                     <div className="text-xs text-ink-soft">
-                      {c.n} {c.n === 1 ? 'venta' : 'ventas'} · desde {shortDay(c.desde)}
+                      {c.n} {c.n === 1 ? 'pendiente' : 'pendientes'} · desde {shortDay(c.desde)}
                     </div>
                   </div>
                   <div className="font-semibold whitespace-nowrap">{cop(c.total)}</div>
@@ -100,7 +131,7 @@ export default function PorCobrar() {
             </ul>
           </Panel>
 
-          <Panel title="Ventas pendientes" subtitle="La más antigua primero">
+          <Panel title="Pendientes de pago" subtitle="El más antiguo primero">
             <ul className="divide-y divide-line -mt-1">
               {rows.map((r) => {
                 const dias = daysSince(r.fecha);
@@ -109,15 +140,15 @@ export default function PorCobrar() {
                   <li key={r.id} className="py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                     <div className="flex-1 min-w-[200px]">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold">{r.cliente}</span>
+                        <span className="font-semibold">{quien(r)}</span>
                         <EstadoBadge estado="pendiente" vencido={vencido} />
                       </div>
                       <div className="text-sm text-ink-soft">
-                        {r.concepto} · {num(r.cantidad)} {r.unidad || ''} · {shortDay(r.fecha)}{' '}
+                        {detalle(r)}{' '}
                         <span className={dias > 30 ? 'text-alert font-medium' : ''}>
                           ({dias === 0 ? 'hoy' : dias === 1 ? 'hace 1 día' : `hace ${dias} días`})
                         </span>
-                        {r.fecha_vencimiento && <> · límite {shortDay(r.fecha_vencimiento)}</>}
+                        {r.fecha_vencimiento && <> · {r.cliente ? 'límite' : 'se espera el pago el'} {shortDay(r.fecha_vencimiento)}</>}
                       </div>
                       {conPendientes.length > 1 && <div className="text-xs mt-0.5"><EmpresaTag nombre={r.empresa} color={r.empresa_color} /></div>}
                     </div>
@@ -129,6 +160,33 @@ export default function PorCobrar() {
             </ul>
           </Panel>
         </div>
+      )}
+
+      {rows && rows.length > 0 && !pendientes && (
+        <Panel
+          title="Ya pagados"
+          subtitle={`${num(rows.length)} ${rows.length === 1 ? 'cobrado' : 'cobrados'} · ${cop(resumen.total)} (los más recientes primero)`}
+        >
+          <ul className="divide-y divide-line -mt-1">
+            {rows.map((r) => (
+              <li key={r.id} className="py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold">{quien(r)}</span>
+                    <EstadoBadge estado="pagado" />
+                  </div>
+                  <div className="text-sm text-ink-soft">
+                    {detalle(r)}
+                    {r.fecha_pago && <> · pagado el {shortDay(r.fecha_pago)}</>}
+                  </div>
+                  {conPendientes.length > 1 && <div className="text-xs mt-0.5"><EmpresaTag nombre={r.empresa} color={r.empresa_color} /></div>}
+                </div>
+                <div className="font-display font-bold text-lg whitespace-nowrap">{cop(r.total)}</div>
+                <PagoButton row={r} onDone={load} />
+              </li>
+            ))}
+          </ul>
+        </Panel>
       )}
     </div>
   );

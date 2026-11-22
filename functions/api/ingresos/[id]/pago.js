@@ -11,7 +11,8 @@ export const onRequestPost = route(async ({ env, body, params }) => {
     const fecha = body.fecha_pago || todayCO();
     if (!isDate(fecha)) fail('bad_date');
     if (fecha < row.fecha) fail('pago_before_sale');
-    const medio = MEDIOS_PAGO.includes(body.medio_pago) ? body.medio_pago : row.medio_pago;
+    // A desposte keeps its payment method; for anything else the person can say how it was paid.
+    const medio = row.medio_pago !== 'desposte' && MEDIOS_PAGO.includes(body.medio_pago) ? body.medio_pago : row.medio_pago;
     await env.DB.prepare(`UPDATE ingresos SET estado='pagado', fecha_pago=?, medio_pago=?, updated_at=datetime('now') WHERE id=?`).bind(fecha, medio, id).run();
   } else {
     if (!row.cobra_pendientes) fail('no_pendientes');

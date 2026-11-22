@@ -115,8 +115,8 @@ export default function Panel() {
                 {d.cartera.lista.map((r) => (
                   <li key={r.id} className="py-2.5 flex items-center justify-between gap-3">
                     <div>
-                      <span className="font-medium">{r.cliente}</span>
-                      <span className="text-sm text-ink-soft"> · {r.concepto} · {shortDay(r.fecha)} (hace {daysSince(r.fecha)} días)</span>
+                      <span className="font-medium">{r.cliente || r.concepto}</span>
+                      <span className="text-sm text-ink-soft">{r.cliente ? ` · ${r.concepto}` : r.nota ? ` · ${r.nota}` : ''} · {shortDay(r.fecha)} (hace {daysSince(r.fecha)} días)</span>
                     </div>
                     <span className="font-semibold whitespace-nowrap">{cop(r.total)}</span>
                   </li>

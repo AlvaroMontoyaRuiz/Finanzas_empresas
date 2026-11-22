@@ -2,6 +2,9 @@
 import { fail, isDate, text, number, ivaSplit, IVA_TARIFAS, empresaById, todayCO } from './util.js';
 
 export const MEDIOS_PAGO = ['efectivo', 'transferencia', 'nequi', 'daviplata', 'tarjeta', 'cheque', 'credito', 'otro'];
+// Companies that only record the total of the day (Carnicería): how that money came in.
+// 'desposte' is not paid yet: it stays "por cobrar" until someone marks it as paid.
+export const MEDIOS_DIA = ['efectivo', 'nequi', 'desposte'];
 
 async function common(env, b) {
   const empresa = await empresaById(env, b.empresa_id);
@@ -26,7 +29,50 @@ async function common(env, b) {
   };
 }
 
+// "Total del día": one amount, one way of payment. No client, quantity or unit price.
+function parseIngresoDia(empresa, b) {
+  if (!isDate(b.fecha)) fail('bad_date');
+  const monto = number(b.monto);
+  if (!(monto > 0)) fail('bad_monto');
+  const pedido = text(b.medio_pago, 30).toLowerCase();
+  const medio = MEDIOS_DIA.includes(pedido) ? pedido : 'efectivo';
+  const total = Math.round(monto);
+  let estado = 'pagado';
+  let fecha_pago = b.fecha;
+  let fecha_vencimiento = null;
+  if (medio === 'desposte') {
+    if (b.estado === 'pagado') {
+      fecha_pago = isDate(b.fecha_pago) && b.fecha_pago >= b.fecha ? b.fecha_pago : b.fecha;
+    } else {
+      estado = 'pendiente';
+      fecha_pago = null;
+      if (b.fecha_vencimiento) {
+        if (!isDate(b.fecha_vencimiento)) fail('bad_date');
+        fecha_vencimiento = b.fecha_vencimiento;
+      }
+    }
+  }
+  return {
+    empresa_id: empresa.id,
+    fecha: b.fecha,
+    cliente: '',
+    concepto: medio === 'desposte' ? 'Desposte' : 'Venta del día',
+    cantidad: 1,
+    unidad: null,
+    precio_unitario: total,
+    total,
+    medio_pago: medio,
+    estado,
+    fecha_vencimiento,
+    fecha_pago,
+    nota: text(b.nota, 500) || null,
+  };
+}
+
 export async function parseIngreso(env, b) {
+  const empresa = await empresaById(env, b.empresa_id);
+  if (!empresa) fail('bad_empresa');
+  if (empresa.ingreso_diario) return parseIngresoDia(empresa, b);
   const c = await common(env, b);
   const cliente = text(b.cliente, 120);
   if (!cliente) fail('bad_cliente');

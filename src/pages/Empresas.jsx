@@ -12,7 +12,7 @@ export default function Empresas() {
       <PageHeader title="Empresas" subtitle="Nombre, color y si la empresa puede dejar ventas pendientes por cobrar." />
       <div className="grid md:grid-cols-2 gap-5">
         {empresas.map((e) => (
-          <EmpresaCard key={e.id + e.nombre + e.color + e.cobra_pendientes} e={e} onSaved={reloadEmpresas} />
+          <EmpresaCard key={e.id + e.nombre + e.color + e.cobra_pendientes + '-' + e.ingreso_diario} e={e} onSaved={reloadEmpresas} />
         ))}
       </div>
     </div>
@@ -20,11 +20,11 @@ export default function Empresas() {
 }
 
 function EmpresaCard({ e, onSaved }) {
-  const [f, setF] = useState({ nombre: e.nombre, color: e.color, cobra_pendientes: !!e.cobra_pendientes });
+  const [f, setF] = useState({ nombre: e.nombre, color: e.color, cobra_pendientes: !!e.cobra_pendientes, ingreso_diario: !!e.ingreso_diario });
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const dirty = f.nombre !== e.nombre || f.color.toLowerCase() !== e.color.toLowerCase() || f.cobra_pendientes !== !!e.cobra_pendientes;
+  const dirty = f.nombre !== e.nombre || f.color.toLowerCase() !== e.color.toLowerCase() || f.cobra_pendientes !== !!e.cobra_pendientes || f.ingreso_diario !== !!e.ingreso_diario;
 
   async function save() {
     setBusy(true);
@@ -58,7 +58,14 @@ function EmpresaCard({ e, onSaved }) {
         </label>
       </div>
       <label className="mt-4 flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" className="mt-1 w-5 h-5 accent-[#1F7A4D]" checked={f.cobra_pendientes} onChange={(x) => setF({ ...f, cobra_pendientes: x.target.checked })} />
+        <input type="checkbox" className="mt-1 w-5 h-5 accent-[#1F7A4D]" checked={f.ingreso_diario} onChange={(x) => setF({ ...f, ingreso_diario: x.target.checked, cobra_pendientes: x.target.checked ? true : f.cobra_pendientes })} />
+        <span>
+          <span className="font-medium">Solo registra el total de cada día</span>
+          <span className="block text-sm text-ink-soft">Sin cliente, cantidad ni precio. Se anota lo que entró en Efectivo, Nequi y Desposte (el desposte queda por cobrar).</span>
+        </span>
+      </label>
+      <label className="mt-4 flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" className="mt-1 w-5 h-5 accent-[#1F7A4D]" checked={f.cobra_pendientes} disabled={f.ingreso_diario} onChange={(x) => setF({ ...f, cobra_pendientes: x.target.checked })} />
         <span>
           <span className="font-medium">Puede dejar ventas pendientes por cobrar</span>
           <span className="block text-sm text-ink-soft">Al registrar un ingreso se elige si ya se pagó o si está pendiente. Aparece en “Por cobrar”.</span>

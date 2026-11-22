@@ -9,11 +9,11 @@ Same stack and look as [Farm_dashboard](https://github.com/AlvaroMontoyaRuiz/Far
 | Screen | Who | What |
 |---|---|---|
 | **Panel** | admin | Ingresos, gastos, utilidad and por cobrar (with % vs. previous period) · ingresos vs gastos per month (chart + table) · each company's income/expenses/profit · gastos por categoría · mejores clientes · ingresos por concepto · principales proveedores · cartera por antigüedad. Filter by period and company. |
-| **Ingresos** | all | Fecha, empresa, cliente / de quién viene, concepto / origen, cantidad + unidad, precio unitario → total, medio de pago. **Carnicería**: *Pagado* or *Pendiente por cobrar* (+ optional fecha límite). Filters, search, correct, delete, CSV export. |
+| **Ingresos** | all | Fecha, empresa, cliente / de quién viene, concepto / origen, cantidad + unidad, precio unitario → total, medio de pago. **Carnicería is different**: it only records the **total of each day** by way of payment — **Efectivo, Nequi or Desposte** (no client, quantity or unit price). One form saves the whole day. Filters, search, correct, delete, CSV export. |
 | **Gastos** | all | Same fields + proveedor, NIT, nº factura, categoría. The price can be typed **with IVA included or without IVA**, rate **0 %, 5 % or 19 %**; base, IVA and total are stored separately. |
-| **Por cobrar** | all | Pending sales, oldest first, grouped by client, overdue ones flagged. *Marcar pagado* asks the date and payment method. |
+| **Por cobrar** | all | Carnicería's **despostes**: each one stays pending (optional expected payment date and detail) until someone taps *Marcar pagado* and gives the payment date. A *Ya pagados* view shows the ones already collected, with *Volver a pendiente* to fix a mistake. Overdue ones are flagged. |
 | **Impuestos** | admin | Per year: IVA paid per **bimestre**, per rate and per company, purchases per proveedor (NIT, base, IVA) for exógena, warning for expenses without invoice number, CSV export for the accountant. |
-| **Empresas** | admin | Rename, change color, and choose which companies may leave sales pending (Carnicería by default). |
+| **Empresas** | admin | Rename, change color, choose which companies record only the day's total (Carnicería by default) and which may leave sales pending. |
 | **Usuarios** | admin | Add users, change passwords/roles, remove users. |
 | **Eliminados** | admin | Every deleted record is copied here with who deleted it and why. |
 

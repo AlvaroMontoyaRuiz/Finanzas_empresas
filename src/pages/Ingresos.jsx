@@ -33,6 +33,7 @@ export default function Ingresos() {
   const cobraDe = (id) => !!empresas.find((e) => e.id === id)?.cobra_pendientes;
   const canEdit = (r) => user.role === 'admin' || r.created_by === user.id;
   const hoy = localToday();
+  const esDia = (r) => !r.cliente; // 'total del día' rows (Carnicería) have no client, quantity or unit price
 
   function exportar() {
     downloadCsv(
@@ -49,7 +50,7 @@ export default function Ingresos() {
     <div className="space-y-5">
       <PageHeader
         title="Ingresos"
-        subtitle="Todo lo que entra a las empresas: cuánto, de quién, de dónde y cuándo."
+        subtitle="Todo lo que entra a las empresas. La carnicería solo registra el total de cada día."
         action={
           <button className="btn btn-primary" onClick={() => setEditing('new')}>
             <IconPlus /> Nuevo ingreso
@@ -116,16 +117,32 @@ export default function Ingresos() {
                   <tr key={r.id} className="border-t border-line align-middle">
                     <td data-label="Fecha" className="px-3 py-2 whitespace-nowrap">{shortDay(r.fecha)}</td>
                     <td data-label="Empresa" className="px-3 py-2"><EmpresaTag nombre={r.empresa} color={r.empresa_color} /></td>
-                    <td data-label="Cliente" className="px-3 py-2 font-medium">{r.cliente}</td>
+                    <td data-label="Cliente" className="px-3 py-2 font-medium">{r.cliente || <span className="text-ink-faint font-normal">—</span>}</td>
                     <td data-label="Concepto" className="px-3 py-2">
                       {r.concepto}
                       {r.nota && <div className="text-xs text-ink-faint">{r.nota}</div>}
                     </td>
-                    <td data-label="Cantidad" className="px-3 py-2 text-right whitespace-nowrap">{num(r.cantidad)} {r.unidad || ''}</td>
-                    <td data-label="Precio unit." className="px-3 py-2 text-right whitespace-nowrap">{cop(r.precio_unitario)}</td>
+                    <td data-label="Cantidad" className="px-3 py-2 text-right whitespace-nowrap">{esDia(r) ? <span className="text-ink-faint">—</span> : <>{num(r.cantidad)} {r.unidad || ''}</>}</td>
+                    <td data-label="Precio unit." className="px-3 py-2 text-right whitespace-nowrap">{esDia(r) ? <span className="text-ink-faint">—</span> : cop(r.precio_unitario)}</td>
                     <td data-label="Total" className="px-3 py-2 text-right font-semibold whitespace-nowrap">{cop(r.total)}</td>
                     <td data-label="Pago" className="px-3 py-2">
-                      {r.estado === 'pendiente' ? (
+                      {esDia(r) ? (
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="font-medium">{medioLabel(r.medio_pago) || '—'}</span>
+                          {r.medio_pago === 'desposte' &&
+                            (r.estado === 'pendiente' ? (
+                              <>
+                                <EstadoBadge estado="pendiente" vencido={r.fecha_vencimiento && r.fecha_vencimiento < hoy} />
+                                {r.fecha_vencimiento && <span className="text-xs text-ink-soft">Se espera el {shortDay(r.fecha_vencimiento)}</span>}
+                              </>
+                            ) : (
+                              <>
+                                <EstadoBadge estado="pagado" />
+                                {r.fecha_pago && <span className="text-xs text-ink-soft">el {shortDay(r.fecha_pago)}</span>}
+                              </>
+                            ))}
+                        </div>
+                      ) : r.estado === 'pendiente' ? (
                         <div className="flex flex-col items-start gap-1">
                           <EstadoBadge estado="pendiente" vencido={r.fecha_vencimiento && r.fecha_vencimiento < hoy} />
                           {r.fecha_vencimiento && <span className="text-xs text-ink-soft">Límite {shortDay(r.fecha_vencimiento)}</span>}

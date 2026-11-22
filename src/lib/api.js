@@ -19,6 +19,8 @@ const ERRORS_ES = {
   bad_cantidad: 'La cantidad debe ser mayor que 0.',
   bad_precio: 'Escribe un precio válido (0 o más).',
   bad_concepto: 'Escribe el concepto (qué se vendió o se compró).',
+  bad_monto: 'Escribe un valor mayor que 0.',
+  sin_montos: 'Escribe el valor de al menos una forma de pago (efectivo, Nequi o desposte).',
   bad_cliente: 'Escribe el nombre del cliente o de quién viene el ingreso.',
   bad_proveedor: 'Escribe el nombre del proveedor.',
   bad_categoria: 'Elige o escribe una categoría.',

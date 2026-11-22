@@ -95,10 +95,26 @@ export const SCHEMA = [
      deleted_at TEXT NOT NULL DEFAULT (datetime('now')))`,
 ];
 
+// Changes made after the first release. D1 has no "ADD COLUMN IF NOT EXISTS", so each one
+// checks first. Safe on new and old databases, and when two requests arrive together.
+async function migrate(env) {
+  const cols = (await env.DB.prepare(`PRAGMA table_info(empresas)`).all()).results || [];
+  if (!cols.some((c) => c.name === 'ingreso_diario')) {
+    // ingreso_diario = 1: the company only records the total of each day (no client, quantity or unit price)
+    try {
+      await env.DB.prepare(`ALTER TABLE empresas ADD COLUMN ingreso_diario INTEGER NOT NULL DEFAULT 0`).run();
+    } catch (e) {
+      if (!/duplicate column/i.test(String(e && e.message ? e.message : e))) throw e;
+    }
+    await env.DB.prepare(`UPDATE empresas SET ingreso_diario = 1, cobra_pendientes = 1 WHERE slug = 'carniceria'`).run();
+  }
+}
+
 let ready = false;
 
 export async function ensureSchema(env) {
   if (ready) return;
   await env.DB.batch(SCHEMA.map((s) => env.DB.prepare(s)));
+  await migrate(env);
   ready = true;
 }
