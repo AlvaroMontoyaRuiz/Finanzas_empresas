@@ -129,6 +129,12 @@ export default function Ingresos() {
                       {esDia(r) ? (
                         <div className="flex flex-col items-start gap-1">
                           <span className="font-medium">{medioLabel(r.medio_pago) || '—'}</span>
+                          {r.medio_pago === 'desposte' && r.abono_efectivo > 0 && (
+                            <span className="text-xs text-ink-soft">
+                              Efectivo {cop(r.abono_efectivo)}
+                              {r.estado === 'pendiente' ? <> · <b className="text-warn">resta {cop(r.total - r.abono_efectivo)}</b></> : ''}
+                            </span>
+                          )}
                           {r.medio_pago === 'desposte' &&
                             (r.estado === 'pendiente' ? (
                               <>

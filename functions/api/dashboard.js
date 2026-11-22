@@ -46,8 +46,8 @@ export const onRequestGet = route(async ({ env, url }) => {
   const totals = (args) =>
     Promise.all([
       first(env, `SELECT COUNT(*) AS n, COALESCE(SUM(total),0) AS total,
-                         COALESCE(SUM(CASE WHEN estado='pagado' THEN total END),0) AS cobrado,
-                         COALESCE(SUM(CASE WHEN estado='pendiente' THEN total END),0) AS pendiente
+                         COALESCE(SUM(total),0) - COALESCE(SUM(CASE WHEN estado='pendiente' THEN total - abono_efectivo END),0) AS cobrado,
+                         COALESCE(SUM(CASE WHEN estado='pendiente' THEN total - abono_efectivo END),0) AS pendiente
                     FROM ingresos WHERE ${R}`, args),
       first(env, `SELECT COUNT(*) AS n, COALESCE(SUM(base),0) AS base, COALESCE(SUM(iva),0) AS iva, COALESCE(SUM(total),0) AS total
                     FROM gastos WHERE ${R}`, args),
@@ -79,8 +79,8 @@ export const onRequestGet = route(async ({ env, url }) => {
                 FROM ingresos WHERE ${R} GROUP BY concepto ORDER BY v DESC LIMIT 8`, ra),
     all(env, `SELECT proveedor AS nombre, SUM(total) AS v, COUNT(*) AS n FROM gastos WHERE ${R} GROUP BY proveedor ORDER BY v DESC LIMIT 8`, ra),
     // Cartera = everything still pending today, whatever its date.
-    all(env, `SELECT julianday(?) - julianday(fecha) AS dias, total FROM ingresos WHERE estado='pendiente'${ew}`, [hoy, ...ea]),
-    all(env, `SELECT i.id, i.fecha, i.cliente, i.concepto, i.nota, i.total, i.fecha_vencimiento, e.nombre AS empresa
+    all(env, `SELECT julianday(?) - julianday(fecha) AS dias, total - abono_efectivo AS total FROM ingresos WHERE estado='pendiente'${ew}`, [hoy, ...ea]),
+    all(env, `SELECT i.id, i.fecha, i.cliente, i.concepto, i.nota, i.total - i.abono_efectivo AS total, i.fecha_vencimiento, e.nombre AS empresa
                 FROM ingresos i JOIN empresas e ON e.id = i.empresa_id
                WHERE i.estado='pendiente'${emp ? ' AND i.empresa_id = ?' : ''} ORDER BY i.fecha ASC LIMIT 8`, ea),
   ]);

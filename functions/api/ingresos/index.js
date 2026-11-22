@@ -1,7 +1,7 @@
 // GET  /api/ingresos?desde&hasta&empresa&estado&q&limit   list + totals
 // POST /api/ingresos                                       create
 import { route, rangeFilters, whereSql, all, first, json, fail, number, empresaById } from '../../_lib/util.js';
-import { parseIngreso, insertSql } from '../../_lib/records.js';
+import { parseIngreso, insertSql, countDespostes, MAX_DESPOSTES_DIA } from '../../_lib/records.js';
 
 export const onRequestGet = route(async ({ env, url }) => {
   const f = rangeFilters(url, 'i');
@@ -28,7 +28,7 @@ export const onRequestGet = route(async ({ env, url }) => {
   const tot = await first(
     env,
     `SELECT COUNT(*) AS n, COALESCE(SUM(i.total),0) AS total,
-            COALESCE(SUM(CASE WHEN i.estado='pendiente' THEN i.total END),0) AS pendiente
+            COALESCE(SUM(CASE WHEN i.estado='pendiente' THEN i.total - i.abono_efectivo END),0) AS pendiente
        FROM ingresos i JOIN empresas e ON e.id = i.empresa_id ${w}`,
     f.args
   );
@@ -36,27 +36,41 @@ export const onRequestGet = route(async ({ env, url }) => {
 });
 
 export const onRequestPost = route(async ({ env, user, body }) => {
-  // The whole day at once: { empresa_id, fecha, montos: { efectivo, nequi, desposte }, fecha_vencimiento?, nota? }
-  // One row per way of payment that has an amount, saved together or not at all.
-  if (body.montos && typeof body.montos === 'object') {
+  // The whole day at once (Carnicería):
+  // { empresa_id, fecha, montos: { efectivo, nequi }, despostes: [{ valor, efectivo, fecha_vencimiento, nota }, ...] }
+  // Efectivo and Nequi make one row each. Every desposte makes its own row (at most 5 per day): its value, the part
+  // paid in cash on the spot, and the rest stays por cobrar. All saved together or not at all.
+  if ((body.montos && typeof body.montos === 'object') || Array.isArray(body.despostes)) {
+    const montos = body.montos && typeof body.montos === 'object' ? body.montos : {};
     const empresa = await empresaById(env, body.empresa_id);
     if (!empresa || !empresa.ingreso_diario) fail('bad_empresa');
     const stmts = [];
-    for (const medio of ['efectivo', 'nequi', 'desposte']) {
-      const m = number(body.montos[medio]);
-      if (!(m > 0)) continue;
-      const desposte = medio === 'desposte';
-      const v = await parseIngreso(env, {
-        empresa_id: empresa.id,
-        fecha: body.fecha,
-        monto: m,
-        medio_pago: medio,
-        estado: desposte ? 'pendiente' : 'pagado',
-        fecha_vencimiento: desposte ? body.fecha_vencimiento : '',
-        nota: desposte ? body.nota : '',
-      });
+    const add = async (extra) => {
+      const v = await parseIngreso(env, { empresa_id: empresa.id, fecha: body.fecha, ...extra });
       const { sql, args } = insertSql('ingresos', { ...v, created_by: user.id });
       stmts.push(env.DB.prepare(sql).bind(...args));
+    };
+    for (const medio of ['efectivo', 'nequi']) {
+      const m = number(montos[medio]);
+      if (m > 0) await add({ monto: m, medio_pago: medio, estado: 'pagado' });
+    }
+    let desp = Array.isArray(body.despostes) ? body.despostes : [];
+    if (!desp.length && number(montos.desposte) > 0) desp = [{ valor: montos.desposte }]; // older form
+    desp = desp.filter((d) => d && (number(d.valor) > 0 || number(d.efectivo) > 0));
+    if (desp.length > MAX_DESPOSTES_DIA) fail('max_despostes', 400, { ya: 0 });
+    if (desp.length) {
+      const ya = await countDespostes(env, empresa.id, body.fecha);
+      if (ya + desp.length > MAX_DESPOSTES_DIA) fail('max_despostes', 400, { ya });
+    }
+    for (const d of desp) {
+      await add({
+        monto: d.valor,
+        medio_pago: 'desposte',
+        abono_efectivo: d.efectivo,
+        estado: 'pendiente',
+        fecha_vencimiento: d.fecha_vencimiento,
+        nota: d.nota,
+      });
     }
     if (!stmts.length) fail('sin_montos');
     await env.DB.batch(stmts);

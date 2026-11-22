@@ -5,7 +5,7 @@ export const onRequestGet = route(async ({ env, url }) => {
   const where = [];
   const args = [];
   const t = url.searchParams.get('table');
-  if (t === 'ingresos' || t === 'gastos') { where.push('d.table_name = ?'); args.push(t); }
+  if (['ingresos', 'gastos', 'pasivos', 'activos'].includes(t)) { where.push('d.table_name = ?'); args.push(t); }
   const d1 = url.searchParams.get('desde');
   const d2 = url.searchParams.get('hasta');
   if (isDate(d1)) { where.push(`date(d.deleted_at, '-5 hours') >= ?`); args.push(d1); }

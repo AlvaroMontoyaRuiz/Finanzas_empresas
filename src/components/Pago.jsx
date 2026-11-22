@@ -46,7 +46,12 @@ export default function PagoButton({ row, onDone, cobra = true }) {
           <p className="text-ink-soft">
             <b className="text-ink">{row.cliente || row.concepto}</b>{row.cliente ? ` · ${row.concepto}` : row.nota ? ` · ${row.nota}` : ''} · del {shortDay(row.fecha)}
           </p>
-          <p className="font-display font-bold text-2xl mt-2">{cop(row.total)}</p>
+          <p className="font-display font-bold text-2xl mt-2">{cop(row.total - (row.abono_efectivo || 0))}</p>
+          {row.abono_efectivo > 0 && (
+            <p className="text-sm text-ink-soft">
+              Valor del desposte {cop(row.total)} · ya recibido en efectivo {cop(row.abono_efectivo)}
+            </p>
+          )}
           <div className={`grid ${row.medio_pago === 'desposte' ? 'grid-cols-1' : 'grid-cols-2'} gap-3 mt-4`}>
             <label className="block">
               <span className="label">Fecha del pago</span>

@@ -47,6 +47,10 @@ export const MEDIOS_DIA = [
 ];
 export const medioLabel = (m) => ([...MEDIOS_PAGO, ...MEDIOS_DIA].find((x) => x[0] === m) || [null, ''])[1];
 
+// Types of assets entered by hand in the Balance
+export const TIPOS_ACTIVO = ['Caja y bancos', 'Inventario', 'Maquinaria y equipo', 'Vehículos', 'Terrenos y construcciones', 'Animales', 'Cultivos', 'Otros'];
+export const MAX_DESPOSTES = 5;
+
 export const UNIDADES = ['unidad', 'kg', 'libra', 'arroba', 'tonelada', 'litro', 'galón', 'bulto', 'viaje', 'cabeza', 'hora', 'día', 'mes', 'servicio'];
 
 export const CATEGORIAS_GASTO = [

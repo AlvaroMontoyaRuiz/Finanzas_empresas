@@ -7,6 +7,7 @@ import Panel from './pages/Panel.jsx';
 import Ingresos from './pages/Ingresos.jsx';
 import Gastos from './pages/Gastos.jsx';
 import PorCobrar from './pages/PorCobrar.jsx';
+import Balance from './pages/Balance.jsx';
 import Impuestos from './pages/Impuestos.jsx';
 import Empresas from './pages/Empresas.jsx';
 import Usuarios from './pages/Usuarios.jsx';
@@ -90,6 +91,7 @@ export default function App() {
               {hayPendientes && <NavItem to="/por-cobrar" badge={pendientes}>Por cobrar</NavItem>}
               {admin && (
                 <>
+                  <NavItem to="/balance">Balance</NavItem>
                   <NavItem to="/impuestos">Impuestos</NavItem>
                   <NavItem to="/empresas">Empresas</NavItem>
                   <NavItem to="/usuarios">Usuarios</NavItem>
@@ -106,6 +108,7 @@ export default function App() {
             <Route path="/ingresos" element={<Ingresos />} />
             <Route path="/gastos" element={<Gastos />} />
             <Route path="/por-cobrar" element={<PorCobrar />} />
+            <Route path="/balance" element={onlyAdmin(<Balance />)} />
             <Route path="/impuestos" element={onlyAdmin(<Impuestos />)} />
             <Route path="/empresas" element={onlyAdmin(<Empresas />)} />
             <Route path="/usuarios" element={onlyAdmin(<Usuarios />)} />

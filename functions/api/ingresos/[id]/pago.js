@@ -16,6 +16,7 @@ export const onRequestPost = route(async ({ env, body, params }) => {
     await env.DB.prepare(`UPDATE ingresos SET estado='pagado', fecha_pago=?, medio_pago=?, updated_at=datetime('now') WHERE id=?`).bind(fecha, medio, id).run();
   } else {
     if (!row.cobra_pendientes) fail('no_pendientes');
+    if (row.total - row.abono_efectivo <= 0) fail('sin_saldo'); // a desposte paid fully in cash has nothing to collect
     await env.DB.prepare(`UPDATE ingresos SET estado='pendiente', fecha_pago=NULL, updated_at=datetime('now') WHERE id=?`).bind(id).run();
   }
   return json({ ok: true });

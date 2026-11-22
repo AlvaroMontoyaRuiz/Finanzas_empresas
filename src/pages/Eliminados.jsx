@@ -3,7 +3,7 @@ import { api, qs } from '../lib/api.js';
 import { cop, shortDay, whenLabel } from '../lib/format.js';
 import { Panel, PageHeader, Skeleton } from '../components/ui.jsx';
 
-const TABLES = { ingresos: 'Ingreso', gastos: 'Gasto' };
+const TABLES = { ingresos: 'Ingreso', gastos: 'Gasto', pasivos: 'Deuda', activos: 'Activo' };
 
 export default function Eliminados() {
   const [rows, setRows] = useState(null);
@@ -27,6 +27,8 @@ export default function Eliminados() {
               <option value="">Todos</option>
               <option value="ingresos">Ingresos</option>
               <option value="gastos">Gastos</option>
+              <option value="pasivos">Deudas</option>
+              <option value="activos">Activos</option>
             </select>
           </label>
           <label className="block">
@@ -64,10 +66,10 @@ export default function Eliminados() {
                       <td data-label="Cuándo" className="px-3 py-2 whitespace-nowrap">{whenLabel(r.deleted_at)}</td>
                       <td data-label="Tipo" className="px-3 py-2">{TABLES[r.table_name] || r.table_name}</td>
                       <td data-label="Registro" className="px-3 py-2">
-                        <b>{p.cliente || p.proveedor}</b> · {p.concepto}
+                        <b>{p.cliente || p.proveedor || p.acreedor || p.tipo}</b> · {p.concepto || p.descripcion}
                         <div className="text-xs text-ink-soft">del {shortDay(p.fecha)}</div>
                       </td>
-                      <td data-label="Valor" className="px-3 py-2 text-right whitespace-nowrap">{cop(p.total)}</td>
+                      <td data-label="Valor" className="px-3 py-2 text-right whitespace-nowrap">{cop(p.total ?? p.monto ?? p.valor)}</td>
                       <td data-label="Eliminó" className="px-3 py-2 text-ink-soft">{r.eliminado_por || '—'}</td>
                       <td data-label="Motivo" className="px-3 py-2">{r.reason || <span className="text-ink-faint">Sin motivo</span>}</td>
                     </tr>

@@ -1,3 +1,5 @@
+import { cop } from './format.js';
+
 // Tiny fetch wrapper. All API calls go through here so cookies travel.
 // Also translates server error codes into Spanish messages for the UI.
 
@@ -21,6 +23,16 @@ const ERRORS_ES = {
   bad_concepto: 'Escribe el concepto (qué se vendió o se compró).',
   bad_monto: 'Escribe un valor mayor que 0.',
   sin_montos: 'Escribe el valor de al menos una forma de pago (efectivo, Nequi o desposte).',
+  bad_abono: 'El efectivo recibido no es válido.',
+  abono_mayor_total: 'El efectivo recibido no puede ser mayor que el valor del desposte.',
+  max_despostes: (d) => `Máximo 5 despostes por día${d.ya ? ` (ese día ya hay ${d.ya})` : ''}.`,
+  sin_saldo: 'Este desposte se pagó completo en efectivo: no queda nada por cobrar.',
+  bad_acreedor: 'Escribe a quién se le debe.',
+  bad_tipo: 'Elige el tipo de activo.',
+  bad_descripcion: 'Escribe una descripción.',
+  bad_valor: 'Escribe un valor válido (0 o más).',
+  monto_menor_abonos: (d) => `El monto no puede ser menor que lo ya abonado (${cop(d.abonado)}).`,
+  abono_mayor_saldo: (d) => `El abono no puede ser mayor que lo que falta por pagar (${cop(d.saldo)}).`,
   bad_cliente: 'Escribe el nombre del cliente o de quién viene el ingreso.',
   bad_proveedor: 'Escribe el nombre del proveedor.',
   bad_categoria: 'Elige o escribe una categoría.',

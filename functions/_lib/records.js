@@ -40,8 +40,16 @@ function parseIngresoDia(empresa, b) {
   let estado = 'pagado';
   let fecha_pago = b.fecha;
   let fecha_vencimiento = null;
+  let abono_efectivo = 0; // paid in cash at the time of the desposte; the rest stays por cobrar
   if (medio === 'desposte') {
-    if (b.estado === 'pagado') {
+    if (b.abono_efectivo !== '' && b.abono_efectivo != null) {
+      abono_efectivo = number(b.abono_efectivo);
+      if (!(abono_efectivo >= 0)) fail('bad_abono');
+      abono_efectivo = Math.round(abono_efectivo);
+      if (abono_efectivo > total) fail('abono_mayor_total');
+    }
+    if (b.estado === 'pagado' || abono_efectivo >= total) {
+      // already collected (or fully paid in cash)
       fecha_pago = isDate(b.fecha_pago) && b.fecha_pago >= b.fecha ? b.fecha_pago : b.fecha;
     } else {
       estado = 'pendiente';
@@ -65,8 +73,18 @@ function parseIngresoDia(empresa, b) {
     estado,
     fecha_vencimiento,
     fecha_pago,
+    abono_efectivo,
     nota: text(b.nota, 500) || null,
   };
+}
+
+// Carnicería can register at most 5 despostes per day.
+export const MAX_DESPOSTES_DIA = 5;
+export async function countDespostes(env, empresaId, fecha, excludeId = 0) {
+  const r = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM ingresos WHERE empresa_id = ? AND fecha = ? AND medio_pago = 'desposte' AND id <> ?`
+  ).bind(Number(empresaId), fecha, Number(excludeId) || 0).first();
+  return r ? r.n : 0;
 }
 
 export async function parseIngreso(env, b) {

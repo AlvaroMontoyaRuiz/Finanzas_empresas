@@ -8,8 +8,17 @@ import PagoButton from '../components/Pago.jsx';
 // Who owes what. For Carnicería these are the despostes: each one stays here until it is marked as paid.
 // Rows without a client (daily totals) are identified by their concept ("Desposte") and note.
 const quien = (r) => r.cliente || r.concepto;
+const saldo = (r) => r.total - (r.abono_efectivo || 0); // what is still owed: the value minus the cash already received
 const detalle = (r) =>
-  [r.cliente ? r.concepto : null, r.cliente ? `${num(r.cantidad)} ${r.unidad || ''}`.trim() : null, r.nota, shortDay(r.fecha)].filter(Boolean).join(' · ');
+  [
+    r.cliente ? r.concepto : null,
+    r.cliente ? `${num(r.cantidad)} ${r.unidad || ''}`.trim() : null,
+    r.abono_efectivo > 0 ? `valor ${cop(r.total)}, efectivo recibido ${cop(r.abono_efectivo)}` : null,
+    r.nota,
+    shortDay(r.fecha),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
 export default function PorCobrar() {
   const { empresas } = useApp();
@@ -38,6 +47,7 @@ export default function PorCobrar() {
     load();
   }, [load]);
 
+  const pendientes = vista === 'pendientes';
   const hoy = localToday();
   const resumen = useMemo(() => {
     if (!rows) return null;
@@ -45,19 +55,17 @@ export default function PorCobrar() {
     for (const r of rows) {
       const c = (porQuien[quien(r)] ||= { nombre: quien(r), n: 0, total: 0, desde: r.fecha });
       c.n++;
-      c.total += r.total;
+      c.total += pendientes ? saldo(r) : r.total;
       if (r.fecha < c.desde) c.desde = r.fecha;
     }
     const vencidas = rows.filter((r) => r.fecha_vencimiento && r.fecha_vencimiento < hoy);
     return {
-      total: rows.reduce((s, r) => s + r.total, 0),
+      total: rows.reduce((s, r) => s + (pendientes ? saldo(r) : r.total), 0),
       vencidas: vencidas.length,
-      totalVencido: vencidas.reduce((s, r) => s + r.total, 0),
+      totalVencido: vencidas.reduce((s, r) => s + saldo(r), 0),
       grupos: Object.values(porQuien).sort((a, b) => b.total - a.total),
     };
-  }, [rows, hoy]);
-
-  const pendientes = vista === 'pendientes';
+  }, [rows, hoy, pendientes]);
 
   return (
     <div className="space-y-5">
@@ -152,7 +160,10 @@ export default function PorCobrar() {
                       </div>
                       {conPendientes.length > 1 && <div className="text-xs mt-0.5"><EmpresaTag nombre={r.empresa} color={r.empresa_color} /></div>}
                     </div>
-                    <div className="font-display font-bold text-lg whitespace-nowrap">{cop(r.total)}</div>
+                    <div className="text-right whitespace-nowrap">
+                      <div className="font-display font-bold text-lg">{cop(saldo(r))}</div>
+                      {r.abono_efectivo > 0 && <div className="text-xs text-ink-soft">de {cop(r.total)}</div>}
+                    </div>
                     <PagoButton row={r} onDone={load} />
                   </li>
                 );

@@ -85,6 +85,43 @@ export const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_gas_fecha ON gastos(fecha)`,
   `CREATE INDEX IF NOT EXISTS idx_gas_empresa ON gastos(empresa_id, fecha)`,
 
+  // Balance: debts the owner has with people (pasivos) and their payments, and assets entered by hand.
+  `CREATE TABLE IF NOT EXISTS pasivos (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     empresa_id INTEGER REFERENCES empresas(id),
+     fecha TEXT NOT NULL,
+     acreedor TEXT NOT NULL,
+     concepto TEXT NOT NULL,
+     monto REAL NOT NULL CHECK (monto > 0),
+     fecha_vencimiento TEXT,
+     nota TEXT,
+     created_by INTEGER REFERENCES users(id),
+     created_at TEXT NOT NULL DEFAULT (datetime('now')),
+     updated_at TEXT)`,
+  `CREATE INDEX IF NOT EXISTS idx_pas_acreedor ON pasivos(acreedor)`,
+
+  `CREATE TABLE IF NOT EXISTS pasivo_pagos (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     pasivo_id INTEGER NOT NULL REFERENCES pasivos(id) ON DELETE CASCADE,
+     fecha TEXT NOT NULL,
+     monto REAL NOT NULL CHECK (monto > 0),
+     nota TEXT,
+     created_by INTEGER REFERENCES users(id),
+     created_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+  `CREATE INDEX IF NOT EXISTS idx_pagos_pasivo ON pasivo_pagos(pasivo_id)`,
+
+  `CREATE TABLE IF NOT EXISTS activos (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     empresa_id INTEGER REFERENCES empresas(id),
+     fecha TEXT NOT NULL,
+     tipo TEXT NOT NULL,
+     descripcion TEXT NOT NULL,
+     valor REAL NOT NULL CHECK (valor >= 0),
+     nota TEXT,
+     created_by INTEGER REFERENCES users(id),
+     created_at TEXT NOT NULL DEFAULT (datetime('now')),
+     updated_at TEXT)`,
+
   `CREATE TABLE IF NOT EXISTS deletion_log (
      id INTEGER PRIMARY KEY AUTOINCREMENT,
      table_name TEXT NOT NULL,
@@ -107,6 +144,16 @@ async function migrate(env) {
       if (!/duplicate column/i.test(String(e && e.message ? e.message : e))) throw e;
     }
     await env.DB.prepare(`UPDATE empresas SET ingreso_diario = 1, cobra_pendientes = 1 WHERE slug = 'carniceria'`).run();
+  }
+
+  // abono_efectivo: part of a desposte that was paid in cash on the day. What is still owed = total − abono_efectivo.
+  const ing = (await env.DB.prepare(`PRAGMA table_info(ingresos)`).all()).results || [];
+  if (!ing.some((c) => c.name === 'abono_efectivo')) {
+    try {
+      await env.DB.prepare(`ALTER TABLE ingresos ADD COLUMN abono_efectivo REAL NOT NULL DEFAULT 0`).run();
+    } catch (e) {
+      if (!/duplicate column/i.test(String(e && e.message ? e.message : e))) throw e;
+    }
   }
 }
 
