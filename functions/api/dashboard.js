@@ -77,7 +77,7 @@ export const onRequestGet = route(async ({ env, url }) => {
     all(env, `SELECT cliente AS nombre, SUM(total) AS v, COUNT(*) AS n FROM ingresos WHERE ${R} AND cliente <> '' GROUP BY cliente ORDER BY v DESC LIMIT 8`, ra),
     all(env, `SELECT concepto AS nombre, SUM(total) AS v, SUM(cantidad) AS cantidad, MAX(unidad) AS unidad, COUNT(*) AS n
                 FROM ingresos WHERE ${R} GROUP BY concepto ORDER BY v DESC LIMIT 8`, ra),
-    all(env, `SELECT proveedor AS nombre, SUM(total) AS v, COUNT(*) AS n FROM gastos WHERE ${R} GROUP BY proveedor ORDER BY v DESC LIMIT 8`, ra),
+    all(env, `SELECT proveedor AS nombre, SUM(total) AS v, COUNT(*) AS n FROM gastos WHERE ${R} AND proveedor <> '' GROUP BY proveedor ORDER BY v DESC LIMIT 8`, ra),
     // Cartera = everything still pending today, whatever its date.
     all(env, `SELECT julianday(?) - julianday(fecha) AS dias, total - abono_efectivo AS total FROM ingresos WHERE estado='pendiente'${ew}`, [hoy, ...ea]),
     all(env, `SELECT i.id, i.fecha, i.cliente, i.concepto, i.nota, i.total - i.abono_efectivo AS total, i.fecha_vencimiento, e.nombre AS empresa

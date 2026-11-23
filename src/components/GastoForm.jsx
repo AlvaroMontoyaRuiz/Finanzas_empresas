@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { useApp } from '../App.jsx';
 import { cop, num, localToday, parseNum, ivaSplit, MEDIOS_PAGO, UNIDADES, IVA_TARIFAS, CATEGORIAS_GASTO } from '../lib/format.js';
 import { ErrorBox } from './ui.jsx';
+import PersonalFields from './PersonalFields.jsx';
 import { Field, NumberInput, EmpresaPicker, Toggle2, useSugerencias, DataList, lastEmpresa } from './fields.jsx';
 
 const toStr = (v) => (v == null ? '' : String(v).replace('.', ','));
@@ -22,6 +23,7 @@ export default function GastoForm({ row, onSaved, onCancel }) {
           unidad: row.unidad || '',
           medio_pago: row.medio_pago || '',
           nota: row.nota || '',
+          monto: toStr(row.total),
         }
       : {
           empresa_id: lastEmpresa.get('gas') || empresas[0]?.id,
@@ -38,6 +40,7 @@ export default function GastoForm({ row, onSaved, onCancel }) {
           iva_tarifa: 19,
           medio_pago: 'efectivo',
           nota: '',
+          monto: '',
         }
   );
   const [err, setErr] = useState('');
@@ -55,14 +58,16 @@ export default function GastoForm({ row, onSaved, onCancel }) {
   const precio = parseNum(f.precio_unitario);
   const tarifa = Number(f.iva_tarifa);
   const calc = cant > 0 && precio >= 0 ? ivaSplit(cant, precio, f.precio_incluye_iva, tarifa) : null;
-  const ok = f.empresa_id && f.fecha && f.proveedor.trim() && f.categoria.trim() && f.concepto.trim() && cant > 0 && precio >= 0;
+  const personal = empresas.find((e) => e.id === Number(f.empresa_id))?.slug === 'personal';
+  const montoP = parseNum(f.monto);
+  const ok = personal ? f.fecha && f.concepto.trim() && montoP > 0 : f.empresa_id && f.fecha && f.proveedor.trim() && f.categoria.trim() && f.concepto.trim() && cant > 0 && precio >= 0;
 
   async function save(e) {
     e.preventDefault();
     setBusy(true);
     setErr('');
     try {
-      const body = { ...f, cantidad: cant, precio_unitario: precio, iva_tarifa: tarifa };
+      const body = personal ? { empresa_id: f.empresa_id, fecha: f.fecha, concepto: f.concepto, monto: montoP, nota: f.nota } : { ...f, cantidad: cant, precio_unitario: precio, iva_tarifa: tarifa };
       if (row) await api.put(`/api/gastos/${row.id}`, body);
       else await api.post('/api/gastos', body);
       lastEmpresa.set('gas', f.empresa_id);
@@ -80,6 +85,10 @@ export default function GastoForm({ row, onSaved, onCancel }) {
         <EmpresaPicker empresas={empresas} value={f.empresa_id} onChange={set('empresa_id')} />
       </Field>
 
+      {personal ? (
+        <PersonalFields f={f} set={set} tipo="gasto" />
+      ) : (
+        <>
       <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Fecha" htmlFor="g-fecha">
           <input id="g-fecha" type="date" className="field" value={f.fecha} onChange={set('fecha')} />
@@ -168,6 +177,9 @@ export default function GastoForm({ row, onSaved, onCancel }) {
           <input id="g-nota" className="field" value={f.nota} onChange={set('nota')} />
         </Field>
       </div>
+
+        </>
+      )}
 
       <ErrorBox>{err}</ErrorBox>
 

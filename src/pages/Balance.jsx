@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { api, qs } from '../lib/api.js';
 import { useApp } from '../App.jsx';
-import { cop, shortDay, localToday, parseNum, TIPOS_ACTIVO, CATS_PERSONAL, downloadCsv } from '../lib/format.js';
+import { cop, shortDay, localToday, parseNum, TIPOS_ACTIVO, downloadCsv } from '../lib/format.js';
 import { Segmented, Panel, PageHeader, Filtros, initialFiltro, Skeleton, Modal, ErrorBox, EmpresaTag, IconPlus, IconDownload } from '../components/ui.jsx';
 import { Field, NumberInput } from '../components/fields.jsx';
 import ConfirmDelete from '../components/ConfirmDelete.jsx';
@@ -175,83 +175,6 @@ function ActivoForm({ row, onSaved, onCancel }) {
   );
 }
 
-/* ---------- Personal (not business) ---------- */
-function PersonalForm({ row, tipoInicial, onSaved, onCancel }) {
-  const [f, setF] = useState({
-    tipo: row?.tipo || tipoInicial || 'gasto',
-    fecha: row?.fecha || localToday(),
-    categoria: row?.categoria || '',
-    concepto: row?.concepto || '',
-    monto: row ? String(row.monto) : '',
-    nota: row?.nota || '',
-  });
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e && e.target ? e.target.value : e }));
-  const cats = CATS_PERSONAL[f.tipo];
-  const categoria = f.categoria || cats[0];
-  const monto = parseNum(f.monto);
-  const ok = f.concepto.trim() && monto > 0 && f.fecha;
-
-  async function save(e) {
-    e.preventDefault();
-    setBusy(true);
-    setErr('');
-    try {
-      const body = { ...f, categoria, monto };
-      if (row) await api.put(`/api/personales/${row.id}`, body);
-      else await api.post('/api/personales', body);
-      refresh();
-      onSaved();
-    } catch (e2) {
-      setErr(e2.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form onSubmit={save} className="space-y-4">
-      <Segmented
-        label="Tipo"
-        large
-        value={f.tipo}
-        onChange={(t) => setF((x) => ({ ...x, tipo: t, categoria: '' }))}
-        options={[{ value: 'gasto', label: 'Gasto personal' }, { value: 'ingreso', label: 'Ingreso personal' }]}
-      />
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Categoría" htmlFor="pe-cat">
-          <select id="pe-cat" className="field" value={categoria} onChange={set('categoria')}>
-            {cats.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Fecha" htmlFor="pe-fecha">
-          <input id="pe-fecha" type="date" className="field" value={f.fecha} onChange={set('fecha')} />
-        </Field>
-      </div>
-      <Field label="Descripción" htmlFor="pe-conc">
-        <input id="pe-conc" className="field" value={f.concepto} onChange={set('concepto')} placeholder={f.tipo === 'gasto' ? 'Ej: Camisas y zapatos' : 'Ej: Premio del chance'} />
-      </Field>
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Valor" htmlFor="pe-monto">
-          <NumberInput id="pe-monto" money value={f.monto} onChange={set('monto')} placeholder="0" />
-        </Field>
-        <Field label="Nota (opcional)" htmlFor="pe-nota">
-          <input id="pe-nota" className="field" value={f.nota} onChange={set('nota')} />
-        </Field>
-      </div>
-      <p className="text-xs text-ink-soft">Esto es dinero personal: no cuenta en ninguna empresa, ni en el Panel, ni en los impuestos.</p>
-      <ErrorBox>{err}</ErrorBox>
-      <div className="grid grid-cols-2 gap-3">
-        <button type="button" className="btn btn-quiet" onClick={onCancel} disabled={busy}>Cancelar</button>
-        <button className="btn btn-primary" disabled={busy || !ok}>{busy ? 'Guardando…' : row ? 'Guardar cambios' : 'Guardar'}</button>
-      </div>
-    </form>
-  );
-}
-
 /* ---------- Page ---------- */
 export default function Balance() {
   const { empresas } = useApp();
@@ -259,8 +182,6 @@ export default function Balance() {
   const [bal, setBal] = useState(null);
   const [pas, setPas] = useState(null);
   const [act, setAct] = useState(null);
-  const [per, setPer] = useState(null);
-  const [verPer, setVerPer] = useState('');
   const [verPag, setVerPag] = useState('abiertas');
   const [err, setErr] = useState('');
   const [modal, setModal] = useState(null); // {kind:'pasivo'|'abono'|'activo', row?}
@@ -273,16 +194,14 @@ export default function Balance() {
       api.get('/api/balance' + qs({ desde: filtro.desde, hasta: filtro.hasta, empresa: emp })),
       api.get('/api/pasivos' + qs({ empresa: emp, estado: verPag })),
       api.get('/api/activos' + qs({ empresa: emp })),
-      api.get('/api/personales' + qs({ desde: filtro.desde, hasta: filtro.hasta, tipo: verPer })),
     ])
-      .then(([b, p, a, pe]) => {
+      .then(([b, p, a]) => {
         setBal(b);
         setPas(p);
         setAct(a);
-        setPer(pe);
       })
       .catch((e) => setErr(e.message));
-  }, [filtro, verPag, verPer]);
+  }, [filtro, verPag]);
 
   useEffect(() => {
     load();
@@ -372,6 +291,30 @@ export default function Balance() {
               )}
             </Panel>
           </div>
+          <Panel title="Resultado por empresa" subtitle="Ingresos y egresos del periodo, incluida Personal.">
+            <div className="rtable-wrap overflow-x-auto rounded-xl border border-line">
+              <table className="rtable w-full text-[15px]">
+                <thead className="bg-field text-left text-ink-soft">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Empresa</th>
+                    <th className="px-3 py-2 font-medium text-right">Ingresos</th>
+                    <th className="px-3 py-2 font-medium text-right">Egresos</th>
+                    <th className="px-3 py-2 font-medium text-right">Resultado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bal.porEmpresa.filter((e) => !filtro.empresa || Number(filtro.empresa) === e.id).map((e) => (
+                    <tr key={e.id} className="border-t border-line">
+                      <td data-label="Empresa" className="px-3 py-2"><EmpresaTag nombre={e.nombre} color={e.color} /></td>
+                      <td data-label="Ingresos" className="px-3 py-2 text-right whitespace-nowrap text-ingreso">{cop(e.ingresos)}</td>
+                      <td data-label="Egresos" className="px-3 py-2 text-right whitespace-nowrap">{cop(e.egresos)}</td>
+                      <td data-label="Resultado" className={`px-3 py-2 text-right whitespace-nowrap font-semibold ${e.resultado < 0 ? 'text-alert' : ''}`}>{cop(e.resultado)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
         </>
       )}
 
@@ -515,67 +458,6 @@ export default function Balance() {
         )}
       </Panel>
 
-      <Panel
-        title="Personal: mis ingresos y gastos"
-        subtitle="Dinero tuyo que no es de ninguna empresa: ropa, lotería, regalos… Usa el periodo de arriba."
-        action={
-          <div className="flex flex-wrap gap-2">
-            <button className="btn btn-quiet !min-h-[44px] text-sm" onClick={() => setModal({ kind: 'personal', tipo: 'ingreso' })}><IconPlus /> Ingreso</button>
-            <button className="btn btn-primary !min-h-[44px] text-sm" onClick={() => setModal({ kind: 'personal', tipo: 'gasto' })}><IconPlus /> Gasto</button>
-          </div>
-        }
-      >
-        {!per ? (
-          <Skeleton className="h-24" />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 min-[440px]:grid-cols-3 gap-3 mb-4">
-              <div className="rounded-xl bg-field px-4 py-3"><div className="text-sm text-ink-soft">Ingresos personales</div><div className="font-display font-bold text-xl text-ingreso">{cop(bal?.personal.ingresos ?? 0)}</div></div>
-              <div className="rounded-xl bg-field px-4 py-3"><div className="text-sm text-ink-soft">Gastos personales</div><div className="font-display font-bold text-xl text-gasto">{cop(bal?.personal.gastos ?? 0)}</div></div>
-              <div className="rounded-xl bg-field px-4 py-3"><div className="text-sm text-ink-soft">Resultado personal</div><div className={`font-display font-bold text-xl ${(bal?.personal.resultado ?? 0) < 0 ? 'text-alert' : 'text-ingreso'}`}>{cop(bal?.personal.resultado ?? 0)}</div></div>
-            </div>
-            <div className="mb-3">
-              <Segmented label="Ver" value={verPer} onChange={setVerPer} large options={[{ value: '', label: 'Todos' }, { value: 'ingreso', label: 'Ingresos' }, { value: 'gasto', label: 'Gastos' }]} />
-            </div>
-            {per.rows.length === 0 ? (
-              <p className="text-sm text-ink-soft py-6 text-center">No hay movimientos personales en este periodo.</p>
-            ) : (
-              <div className="rtable-wrap overflow-x-auto rounded-xl border border-line">
-                <table className="rtable w-full text-[15px]">
-                  <thead className="bg-field text-left text-ink-soft">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Fecha</th>
-                      <th className="px-3 py-2 font-medium">Tipo</th>
-                      <th className="px-3 py-2 font-medium">Categoría</th>
-                      <th className="px-3 py-2 font-medium">Descripción</th>
-                      <th className="px-3 py-2 font-medium text-right">Valor</th>
-                      <th className="px-3 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {per.rows.map((r) => (
-                      <tr key={r.id} className="border-t border-line align-top">
-                        <td data-label="Fecha" className="px-3 py-2 whitespace-nowrap">{shortDay(r.fecha)}</td>
-                        <td data-label="Tipo" className="px-3 py-2"><span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${r.tipo === 'ingreso' ? 'bg-[#E3EFE8] text-farm-green' : 'bg-warn-bg text-warn'}`}>{r.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}</span></td>
-                        <td data-label="Categoría" className="px-3 py-2">{r.categoria}</td>
-                        <td data-label="Descripción" className="px-3 py-2">{r.concepto}{r.nota && <div className="text-xs text-ink-soft">{r.nota}</div>}</td>
-                        <td data-label="Valor" className={`px-3 py-2 text-right whitespace-nowrap font-semibold ${r.tipo === 'ingreso' ? 'text-ingreso' : ''}`}>{r.tipo === 'ingreso' ? '+ ' : '− '}{cop(r.monto)}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-x-3 justify-end">
-                            <button type="button" className="text-sm underline underline-offset-2 text-ink-soft min-h-[40px] px-1" onClick={() => setModal({ kind: 'personal', row: r })}>Editar</button>
-                            <ConfirmDelete table="personales" id={r.id} onDeleted={refresh} />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-      </Panel>
-
       {modal?.kind === 'pasivo' && (
         <Modal title={modal.row ? 'Editar deuda' : 'Nueva deuda'} onClose={close} wide>
           <PasivoForm row={modal.row} onSaved={done} onCancel={close} />
@@ -584,11 +466,6 @@ export default function Balance() {
       {modal?.kind === 'abono' && (
         <Modal title="Registrar abono" onClose={close}>
           <AbonoForm row={modal.row} url={`/api/pasivos/${modal.row.id}/pago`} onSaved={done} onCancel={close} />
-        </Modal>
-      )}
-      {modal?.kind === 'personal' && (
-        <Modal title={modal.row ? 'Editar movimiento personal' : 'Nuevo movimiento personal'} onClose={close} wide>
-          <PersonalForm row={modal.row} tipoInicial={modal.tipo} onSaved={done} onCancel={close} />
         </Modal>
       )}
       {modal?.kind === 'activo' && (

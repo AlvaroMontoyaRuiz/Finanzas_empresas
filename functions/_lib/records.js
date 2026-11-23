@@ -87,9 +87,23 @@ export async function countDespostes(env, empresaId, fecha, excludeId = 0) {
   return r ? r.n : 0;
 }
 
+// Company "Personal" (the owner's own money): the user only types what it is and the amount.
+function personalBase(empresa, b) {
+  if (!isDate(b.fecha)) fail('bad_date');
+  const concepto = text(b.concepto, 160);
+  if (!concepto) fail('bad_concepto');
+  const monto = Math.round(number(b.monto));
+  if (!(monto > 0)) fail('bad_monto');
+  return { empresa_id: empresa.id, fecha: b.fecha, concepto, monto, nota: text(b.nota, 500) || null };
+}
+
 export async function parseIngreso(env, b) {
   const empresa = await empresaById(env, b.empresa_id);
   if (!empresa) fail('bad_empresa');
+  if (empresa.slug === 'personal') {
+    const p = personalBase(empresa, b);
+    return { empresa_id: p.empresa_id, fecha: p.fecha, cliente: '', concepto: p.concepto, cantidad: 1, unidad: null, precio_unitario: p.monto, total: p.monto, medio_pago: null, estado: 'pagado', fecha_vencimiento: null, fecha_pago: p.fecha, nota: p.nota };
+  }
   if (empresa.ingreso_diario) return parseIngresoDia(empresa, b);
   const c = await common(env, b);
   const cliente = text(b.cliente, 120);
@@ -124,6 +138,11 @@ export async function parseIngreso(env, b) {
 }
 
 export async function parseGasto(env, b) {
+  const emp = await empresaById(env, b.empresa_id);
+  if (emp && emp.slug === 'personal') {
+    const p = personalBase(emp, b);
+    return { empresa_id: p.empresa_id, fecha: p.fecha, proveedor: '', nit: null, factura: null, categoria: p.concepto, concepto: p.concepto, cantidad: 1, unidad: null, precio_unitario: p.monto, precio_incluye_iva: 0, iva_tarifa: 0, base: p.monto, iva: 0, total: p.monto, medio_pago: null, nota: p.nota };
+  }
   const c = await common(env, b);
   const proveedor = text(b.proveedor, 120);
   if (!proveedor) fail('bad_proveedor');

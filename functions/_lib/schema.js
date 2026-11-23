@@ -35,7 +35,8 @@ export const SCHEMA = [
      (2, 'carniceria', 'Carnicería', '#C94F7C', 1, 2),
      (3, 'camion', 'Camión', '#2A78D6', 0, 3),
      (4, 'palmiste', 'Palmiste', '#C77A0A', 0, 4),
-     (5, 'fruver', 'Fruver', '#7A4BC2', 0, 5)`,
+     (5, 'fruver', 'Fruver', '#7A4BC2', 0, 5),
+     (6, 'personal', 'Personal', '#5C6B73', 0, 6)`,
 
   // Income. total = cantidad × precio_unitario (pesos colombianos).
   `CREATE TABLE IF NOT EXISTS ingresos (
@@ -123,21 +124,6 @@ export const SCHEMA = [
      created_at TEXT NOT NULL DEFAULT (datetime('now')),
      updated_at TEXT)`,
 
-  // Personal money of the owner (clothes, lottery, gifts…). Never mixed with the businesses' numbers.
-  `CREATE TABLE IF NOT EXISTS personales (
-     id INTEGER PRIMARY KEY AUTOINCREMENT,
-     tipo TEXT NOT NULL CHECK (tipo IN ('ingreso','gasto')),
-     fecha TEXT NOT NULL,
-     categoria TEXT NOT NULL,
-     concepto TEXT NOT NULL,
-     monto REAL NOT NULL CHECK (monto > 0),
-     medio_pago TEXT,
-     nota TEXT,
-     created_by INTEGER REFERENCES users(id),
-     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-     updated_at TEXT)`,
-  `CREATE INDEX IF NOT EXISTS idx_per_fecha ON personales(fecha)`,
-
   `CREATE TABLE IF NOT EXISTS deletion_log (
      id INTEGER PRIMARY KEY AUTOINCREMENT,
      table_name TEXT NOT NULL,
@@ -187,6 +173,18 @@ async function migrate(env) {
     }
   }
   await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_pas_tipo ON pasivos(tipo, empresa_id)`).run();
+
+  // Personal money is now the company "Personal". Move anything saved in the old separate table, then drop it.
+  const old = await env.DB.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='personales'`).first();
+  if (old) {
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO ingresos (empresa_id, fecha, cliente, concepto, cantidad, unidad, precio_unitario, total, medio_pago, estado, fecha_pago, nota, created_by)
+        SELECT 6, fecha, '', concepto, 1, NULL, monto, monto, NULL, 'pagado', fecha, nota, created_by FROM personales WHERE tipo = 'ingreso'`),
+      env.DB.prepare(`INSERT INTO gastos (empresa_id, fecha, proveedor, categoria, concepto, cantidad, unidad, precio_unitario, precio_incluye_iva, iva_tarifa, base, iva, total, medio_pago, nota, created_by)
+        SELECT 6, fecha, '', concepto, concepto, 1, NULL, monto, 0, 0, monto, 0, monto, NULL, nota, created_by FROM personales WHERE tipo = 'gasto'`),
+      env.DB.prepare(`DROP TABLE personales`),
+    ]);
+  }
 }
 
 let ready = false;

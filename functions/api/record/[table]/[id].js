@@ -3,8 +3,8 @@
 import { route, json, fail } from '../../../_lib/util.js';
 import { loadOwned } from '../../../_lib/records.js';
 
-const ALLOWED = new Set(['ingresos', 'gastos', 'pasivos', 'activos', 'personales']);
-const ADMIN_ONLY = new Set(['pasivos', 'activos', 'personales']);
+const ALLOWED = new Set(['ingresos', 'gastos', 'pasivos', 'activos']);
+const ADMIN_ONLY = new Set(['pasivos', 'activos']);
 
 export const onRequestDelete = route(async ({ env, user, body, params }) => {
   if (!ALLOWED.has(params.table)) fail('bad_table');

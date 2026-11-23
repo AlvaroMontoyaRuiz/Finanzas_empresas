@@ -17,7 +17,7 @@ export const onRequestGet = route(async ({ env, url }) => {
   const ew = emp ? ' AND empresa_id = ?' : '';
   const ea = emp ? [emp] : [];
 
-  const [porCobrar, activos, porTipo, pasivos, ingresos, gastos, personal] = await Promise.all([
+  const [porCobrar, activos, porTipo, pasivos, ingresos, gastos, porEmpresa] = await Promise.all([
     first(env, `SELECT COUNT(*) AS n, COALESCE(SUM(total - abono_efectivo),0) AS saldo FROM ingresos WHERE estado = 'pendiente'${ew}`, ea),
     first(env, `SELECT COUNT(*) AS n, COALESCE(SUM(valor),0) AS valor FROM activos WHERE 1 = 1${ew}`, ea),
     all(env, `SELECT tipo AS nombre, SUM(valor) AS v, COUNT(*) AS n FROM activos WHERE 1 = 1${ew} GROUP BY tipo ORDER BY v DESC`, ea),
@@ -26,8 +26,7 @@ export const onRequestGet = route(async ({ env, url }) => {
                 FROM pasivos p WHERE 1 = 1${emp ? ' AND p.empresa_id = ?' : ''}`, ea),
     first(env, `SELECT COALESCE(SUM(total),0) AS total, COUNT(*) AS n FROM ingresos WHERE fecha >= ? AND fecha <= ?${ew}`, [desde, hasta, ...ea]),
     first(env, `SELECT COALESCE(SUM(total),0) AS total, COALESCE(SUM(iva),0) AS iva, COUNT(*) AS n FROM gastos WHERE fecha >= ? AND fecha <= ?${ew}`, [desde, hasta, ...ea]),
-    // personal money is not tied to any company, so the company filter does not apply
-    first(env, `SELECT COALESCE(SUM(CASE WHEN tipo='ingreso' THEN monto END),0) AS ingresos, COALESCE(SUM(CASE WHEN tipo='gasto' THEN monto END),0) AS gastos, COUNT(*) AS n FROM personales WHERE fecha >= ? AND fecha <= ?`, [desde, hasta]),
+    all(env, `SELECT e.id, e.nombre, e.color, COALESCE((SELECT SUM(total) FROM ingresos WHERE empresa_id = e.id AND fecha >= ? AND fecha <= ?),0) AS ingresos, COALESCE((SELECT SUM(total) FROM gastos WHERE empresa_id = e.id AND fecha >= ? AND fecha <= ?),0) AS egresos FROM empresas e ORDER BY e.orden`, [desde, hasta, desde, hasta]),
   ]);
 
   const abiertas = pasivos.filter((p) => p.saldo > 0);
@@ -56,7 +55,7 @@ export const onRequestGet = route(async ({ env, url }) => {
     },
     patrimonio: activoTotal - pasivoTotal,
     periodo: { ingresos: ingresos.total, egresos: gastos.total, resultado: ingresos.total - gastos.total, nIngresos: ingresos.n, nEgresos: gastos.n },
-    personal: { ingresos: personal.ingresos, gastos: personal.gastos, resultado: personal.ingresos - personal.gastos, n: personal.n },
+    porEmpresa: porEmpresa.map((e) => ({ ...e, resultado: e.ingresos - e.egresos })),
     deuda: { meDeben: porCobrar.saldo, debo: pasivoTotal, neta: porCobrar.saldo - pasivoTotal },
   });
 }, { admin: true });

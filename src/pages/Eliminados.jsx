@@ -3,7 +3,7 @@ import { api, qs } from '../lib/api.js';
 import { cop, shortDay, whenLabel } from '../lib/format.js';
 import { Panel, PageHeader, Skeleton } from '../components/ui.jsx';
 
-const TABLES = { ingresos: 'Ingreso', gastos: 'Gasto', pasivos: 'Deuda', activos: 'Activo', personales: 'Personal' };
+const TABLES = { ingresos: 'Ingreso', gastos: 'Gasto', pasivos: 'Deuda', activos: 'Activo' };
 
 export default function Eliminados() {
   const [rows, setRows] = useState(null);
@@ -29,7 +29,6 @@ export default function Eliminados() {
               <option value="gastos">Gastos</option>
               <option value="pasivos">Deudas</option>
               <option value="activos">Activos</option>
-              <option value="personales">Personal</option>
             </select>
           </label>
           <label className="block">

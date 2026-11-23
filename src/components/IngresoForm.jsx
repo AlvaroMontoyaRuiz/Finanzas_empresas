@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { useApp } from '../App.jsx';
 import { cop, num, shortDay, localToday, parseNum, MEDIOS_PAGO, MEDIOS_DIA, UNIDADES, MAX_DESPOSTES } from '../lib/format.js';
 import { ErrorBox } from './ui.jsx';
+import PersonalFields from './PersonalFields.jsx';
 import { Field, NumberInput, EmpresaPicker, Toggle2, useSugerencias, DataList, lastEmpresa } from './fields.jsx';
 
 const toStr = (v) => (v == null ? '' : String(v).replace('.', ','));
@@ -43,6 +44,7 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
           fecha_vencimiento: '',
           fecha_pago: '',
           nota: '',
+          monto: '',
           m_efectivo: '',
           m_nequi: '',
           despostes: [nuevoDesposte()],
@@ -55,7 +57,8 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v && v.target ? v.target.value : v }));
 
   const empresa = empresas.find((e) => e.id === Number(f.empresa_id));
-  const diario = !!empresa?.ingreso_diario;
+  const personal = empresa?.slug === 'personal';
+  const diario = !!empresa?.ingreso_diario && !personal;
   const cobra = !!empresa?.cobra_pendientes;
 
   // how many despostes that day already exist (the limit is 5 per day)
@@ -114,7 +117,11 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
     setBusy(true);
     setErr('');
     try {
-      if (diario && nuevoDia) {
+      if (personal) {
+        const body = { empresa_id: f.empresa_id, fecha: f.fecha, concepto: f.concepto, monto: montoUno, nota: f.nota };
+        if (row) await api.put(`/api/ingresos/${row.id}`, body);
+        else await api.post('/api/ingresos', body);
+      } else if (diario && nuevoDia) {
         await api.post('/api/ingresos', {
           empresa_id: f.empresa_id,
           fecha: f.fecha,
@@ -149,7 +156,7 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
     }
   }
 
-  const ok = diario ? okDia : okCompleto;
+  const ok = personal ? f.fecha && f.concepto.trim() && montoUno > 0 : diario ? okDia : okCompleto;
   const submitLabel = busy ? 'Guardando…' : row ? 'Guardar cambios' : diario ? 'Guardar ingresos del día' : 'Guardar ingreso';
 
   return (
@@ -158,7 +165,9 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
         <EmpresaPicker empresas={empresas} value={f.empresa_id} onChange={set('empresa_id')} />
       </Field>
 
-      {diario ? (
+      {personal ? (
+        <PersonalFields f={f} set={set} tipo="ingreso" />
+      ) : diario ? (
         <>
           <Field label="Fecha" htmlFor="i-fecha" className="sm:max-w-[260px]">
             <input id="i-fecha" type="date" className="field" value={f.fecha} onChange={set('fecha')} max="2100-12-31" />
