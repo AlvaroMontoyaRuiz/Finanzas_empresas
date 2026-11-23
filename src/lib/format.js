@@ -50,6 +50,11 @@ export const medioLabel = (m) => ([...MEDIOS_PAGO, ...MEDIOS_DIA].find((x) => x[
 // Types of assets entered by hand in the Balance
 export const TIPOS_ACTIVO = ['Caja y bancos', 'Inventario', 'Maquinaria y equipo', 'Vehículos', 'Terrenos y construcciones', 'Animales', 'Cultivos', 'Otros'];
 export const MAX_DESPOSTES = 5;
+// Personal movements of the owner (not business)
+export const CATS_PERSONAL = {
+  gasto: ['Ropa y calzado', 'Alimentación', 'Hogar', 'Salud', 'Educación', 'Entretenimiento', 'Regalos', 'Transporte personal', 'Viajes', 'Otros'],
+  ingreso: ['Lotería y premios', 'Regalo recibido', 'Venta de algo personal', 'Devolución', 'Otros'],
+};
 
 export const UNIDADES = ['unidad', 'kg', 'libra', 'arroba', 'tonelada', 'litro', 'galón', 'bulto', 'viaje', 'cabeza', 'hora', 'día', 'mes', 'servicio'];
 
