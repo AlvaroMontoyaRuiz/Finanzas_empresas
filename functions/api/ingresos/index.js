@@ -40,10 +40,12 @@ export const onRequestPost = route(async ({ env, user, body }) => {
   // { empresa_id, fecha, montos: { efectivo, nequi }, despostes: [{ valor, efectivo, fecha_vencimiento, nota }, ...] }
   // Efectivo and Nequi make one row each. Every desposte makes its own row (at most 5 per day): its value, the part
   // paid in cash on the spot, and the rest stays por cobrar. All saved together or not at all.
-  if ((body.montos && typeof body.montos === 'object') || Array.isArray(body.despostes)) {
+  // Only companies that record the day's total (Carnicería) use this path; any other company always gets the
+  // full form, even if day fields come along by mistake.
+  const empDia = (body.montos && typeof body.montos === 'object') || Array.isArray(body.despostes) ? await empresaById(env, body.empresa_id) : null;
+  if (empDia && empDia.ingreso_diario) {
     const montos = body.montos && typeof body.montos === 'object' ? body.montos : {};
-    const empresa = await empresaById(env, body.empresa_id);
-    if (!empresa || !empresa.ingreso_diario) fail('bad_empresa');
+    const empresa = empDia;
     const stmts = [];
     const add = async (extra) => {
       const v = await parseIngreso(env, { empresa_id: empresa.id, fecha: body.fecha, ...extra });

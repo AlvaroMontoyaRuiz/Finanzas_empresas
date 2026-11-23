@@ -8,8 +8,8 @@ const ADMIN_ONLY = new Set(['pasivos', 'activos']);
 
 export const onRequestDelete = route(async ({ env, user, body, params }) => {
   if (!ALLOWED.has(params.table)) fail('bad_table');
-  if (ADMIN_ONLY.has(params.table) && user.role !== 'admin') fail('admin_only', 403);
   const row = await loadOwned(env, params.table, params.id, user);
+  if (ADMIN_ONLY.has(params.table) && user.role !== 'admin' && !(params.table === 'pasivos' && row.tipo === 'proveedor')) fail('admin_only', 403);
   if (params.table === 'pasivos') {
     const r = await env.DB.prepare(`SELECT fecha, monto, nota FROM pasivo_pagos WHERE pasivo_id = ? ORDER BY fecha, id`).bind(row.id).all();
     row.pagos = r.results || [];

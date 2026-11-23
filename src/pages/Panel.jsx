@@ -37,14 +37,14 @@ export default function Panel() {
 
       {err && <p className="text-alert">No se pudo cargar el panel: {err}</p>}
       {!d && !err && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 2xl:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}
         </div>
       )}
 
       {d && (
         <>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 settle">
+          <div className="grid sm:grid-cols-2 2xl:grid-cols-4 gap-4 settle">
             <Kpi label="Ingresos" value={d.ingresos.total} prev={d.anterior.ingresos} accent={COLOR_INGRESO} sub={`${num(d.ingresos.n)} registros`} />
             <Kpi label="Gastos" value={d.gastos.total} prev={d.anterior.gastos} accent={COLOR_GASTO} upIsBad sub={`IVA pagado ${cop(d.gastos.iva)}`} />
             <Kpi
@@ -139,7 +139,7 @@ function Kpi({ label, value, prev, accent, sub, upIsBad = false, negative = fals
     <div className="bg-white rounded-2xl border border-line shadow-panel px-5 py-4 relative overflow-hidden">
       <span className="absolute left-0 top-0 bottom-0 w-1" style={{ background: accent }} aria-hidden />
       <div className="text-sm text-ink-soft">{label}</div>
-      <div className={`font-display font-bold text-[26px] leading-tight mt-1 ${negative ? 'text-alert' : ''}`}>{cop(value)}</div>
+      <div className={`font-display font-bold text-[26px] leading-tight mt-1 whitespace-nowrap ${negative ? 'text-alert' : ''}`}>{cop(value)}</div>
       <div className="flex items-center gap-2 mt-0.5 text-sm">
         {delta != null && Math.abs(delta) >= 0.5 && (
           <span className={`inline-flex items-center font-semibold ${good ? 'text-farm-green' : 'text-alert'}`}>

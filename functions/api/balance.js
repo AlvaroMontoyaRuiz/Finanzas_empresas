@@ -21,7 +21,7 @@ export const onRequestGet = route(async ({ env, url }) => {
     first(env, `SELECT COUNT(*) AS n, COALESCE(SUM(total - abono_efectivo),0) AS saldo FROM ingresos WHERE estado = 'pendiente'${ew}`, ea),
     first(env, `SELECT COUNT(*) AS n, COALESCE(SUM(valor),0) AS valor FROM activos WHERE 1 = 1${ew}`, ea),
     all(env, `SELECT tipo AS nombre, SUM(valor) AS v, COUNT(*) AS n FROM activos WHERE 1 = 1${ew} GROUP BY tipo ORDER BY v DESC`, ea),
-    all(env, `SELECT p.id, p.acreedor, p.monto, p.fecha_vencimiento,
+    all(env, `SELECT p.id, p.tipo, p.acreedor, p.monto, p.fecha_vencimiento,
                      p.monto - COALESCE((SELECT SUM(g.monto) FROM pasivo_pagos g WHERE g.pasivo_id = p.id), 0) AS saldo
                 FROM pasivos p WHERE 1 = 1${emp ? ' AND p.empresa_id = ?' : ''}`, ea),
     first(env, `SELECT COALESCE(SUM(total),0) AS total, COUNT(*) AS n FROM ingresos WHERE fecha >= ? AND fecha <= ?${ew}`, [desde, hasta, ...ea]),
@@ -48,6 +48,8 @@ export const onRequestGet = route(async ({ env, url }) => {
       total: pasivoTotal,
       n: abiertas.length,
       vencidas: abiertas.filter((p) => p.fecha_vencimiento && p.fecha_vencimiento < hoy).length,
+      deudas: abiertas.filter((p) => p.tipo !== 'proveedor').reduce((s, p) => s + p.saldo, 0),
+      proveedores: abiertas.filter((p) => p.tipo === 'proveedor').reduce((s, p) => s + p.saldo, 0),
       porAcreedor: Object.values(porAcreedor).sort((a, b) => b.v - a.v),
     },
     patrimonio: activoTotal - pasivoTotal,

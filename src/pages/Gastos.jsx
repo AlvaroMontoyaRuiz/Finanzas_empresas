@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, qs } from '../lib/api.js';
 import { useApp } from '../App.jsx';
 import { cop, num, shortDay, medioLabel, downloadCsv } from '../lib/format.js';
@@ -14,6 +15,14 @@ export default function Gastos() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState('');
   const [editing, setEditing] = useState(null);
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (params.get('nuevo')) {
+      setEditing('new');
+      params.delete('nuevo');
+      setParams(params, { replace: true });
+    }
+  }, [params, setParams]);
 
   const load = useCallback(() => {
     setErr('');

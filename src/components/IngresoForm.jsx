@@ -134,7 +134,8 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
           nota: f.nota,
         });
       } else {
-        const body = { ...f, cantidad: cant, precio_unitario: precio, estado: cobra ? f.estado : 'pagado' };
+        const { despostes, m_efectivo, m_nequi, monto, abono, medio_dia, ...rest } = f; // eslint-disable-line no-unused-vars
+        const body = { ...rest, cantidad: cant, precio_unitario: precio, estado: cobra ? f.estado : 'pagado' };
         if (row) await api.put(`/api/ingresos/${row.id}`, body);
         else await api.post('/api/ingresos', body);
       }

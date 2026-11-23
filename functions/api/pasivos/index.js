@@ -27,7 +27,7 @@ export async function parsePasivo(env, b) {
 }
 
 export const onRequestGet = route(async ({ env, url }) => {
-  const where = [];
+  const where = ["p.tipo = 'deuda'"];
   const args = [];
   const emp = Number(url.searchParams.get('empresa')) || 0;
   if (emp) { where.push('p.empresa_id = ?'); args.push(emp); }
@@ -38,7 +38,7 @@ export const onRequestGet = route(async ({ env, url }) => {
     `SELECT p.*, e.nombre AS empresa, e.color AS empresa_color,
             COALESCE((SELECT SUM(g.monto) FROM pasivo_pagos g WHERE g.pasivo_id = p.id), 0) AS abonado
        FROM pasivos p LEFT JOIN empresas e ON e.id = p.empresa_id
-       ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY p.fecha DESC, p.id DESC LIMIT 1000`,
+       WHERE ${where.join(' AND ')} ORDER BY p.fecha DESC, p.id DESC LIMIT 1000`,
     args
   );
   const pagos = rows.length

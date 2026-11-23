@@ -5,6 +5,8 @@ import { cop, shortDay, localToday, parseNum, TIPOS_ACTIVO, downloadCsv } from '
 import { Panel, PageHeader, Filtros, initialFiltro, Skeleton, Modal, ErrorBox, EmpresaTag, IconPlus, IconDownload } from '../components/ui.jsx';
 import { Field, NumberInput } from '../components/fields.jsx';
 import ConfirmDelete from '../components/ConfirmDelete.jsx';
+import AbonoForm from '../components/AbonoForm.jsx';
+import { Link } from 'react-router-dom';
 
 const refresh = () => window.dispatchEvent(new Event('balance:changed'));
 
@@ -101,62 +103,6 @@ function PasivoForm({ row, onSaved, onCancel }) {
   );
 }
 
-function AbonoForm({ row, onSaved, onCancel }) {
-  const [fecha, setFecha] = useState(localToday());
-  const [monto, setMonto] = useState('');
-  const [nota, setNota] = useState('');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  const n = parseNum(monto);
-  const ok = n > 0 && n <= row.saldo;
-
-  async function save(e) {
-    e.preventDefault();
-    setBusy(true);
-    setErr('');
-    try {
-      await api.post(`/api/pasivos/${row.id}/pago`, { fecha, monto: n, nota });
-      refresh();
-      onSaved();
-    } catch (e2) {
-      setErr(e2.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form onSubmit={save} className="space-y-4">
-      <p className="text-ink-soft">
-        <b className="text-ink">{row.acreedor}</b> · {row.concepto}
-      </p>
-      <div className="rounded-xl bg-field px-4 py-3 flex justify-between">
-        <span className="text-ink-soft">Falta por pagar</span>
-        <b className="font-display text-lg">{cop(row.saldo)}</b>
-      </div>
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Valor del abono" htmlFor="a-monto">
-          <NumberInput id="a-monto" money value={monto} onChange={(e) => setMonto(e && e.target ? e.target.value : e)} placeholder="0" />
-        </Field>
-        <Field label="Fecha del abono" htmlFor="a-fecha">
-          <input id="a-fecha" type="date" className="field" value={fecha} min={row.fecha} onChange={(e) => setFecha(e.target.value)} />
-        </Field>
-      </div>
-      <button type="button" className="text-sm underline underline-offset-2 text-ink-soft" onClick={() => setMonto(String(row.saldo))}>
-        Pagar todo lo que falta ({cop(row.saldo)})
-      </button>
-      <Field label="Nota (opcional)" htmlFor="a-nota">
-        <input id="a-nota" className="field" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej: transferencia Nequi" />
-      </Field>
-      {n > row.saldo && <p className="text-sm text-alert">El abono no puede ser mayor que lo que falta ({cop(row.saldo)}).</p>}
-      <ErrorBox>{err}</ErrorBox>
-      <div className="grid grid-cols-2 gap-3">
-        <button type="button" className="btn btn-quiet" onClick={onCancel} disabled={busy}>Cancelar</button>
-        <button className="btn btn-primary" disabled={busy || !ok}>{busy ? 'Guardando…' : 'Registrar abono'}</button>
-      </div>
-    </form>
-  );
-}
 
 /* ---------- Activo manual ---------- */
 function ActivoForm({ row, onSaved, onCancel }) {
@@ -311,7 +257,7 @@ export default function Balance() {
         <>
           <div className="grid grid-cols-1 min-[440px]:grid-cols-2 lg:grid-cols-3 gap-3">
             <Tile label="Activo (lo que tengo)" value={cop(bal.activo.total)} sub={`Por cobrar ${cop(bal.activo.porCobrar)} + registrados ${cop(bal.activo.registrados)}`} tone="good" />
-            <Tile label="Pasivo (lo que debo)" value={cop(bal.pasivo.total)} sub={bal.pasivo.n ? `${bal.pasivo.n} ${bal.pasivo.n === 1 ? 'deuda abierta' : 'deudas abiertas'}${bal.pasivo.vencidas ? ` · ${bal.pasivo.vencidas} vencida${bal.pasivo.vencidas > 1 ? 's' : ''}` : ''}` : 'Sin deudas abiertas'} tone={bal.pasivo.total > 0 ? 'warn' : ''} />
+            <Tile label="Pasivo (lo que debo)" value={cop(bal.pasivo.total)} sub={bal.pasivo.n ? `Deudas ${cop(bal.pasivo.deudas)} + proveedores ${cop(bal.pasivo.proveedores)}${bal.pasivo.vencidas ? ` · ${bal.pasivo.vencidas} vencida${bal.pasivo.vencidas > 1 ? 's' : ''}` : ''}` : 'Sin deudas abiertas'} tone={bal.pasivo.total > 0 ? 'warn' : ''} />
             <Tile label="Patrimonio (activo − pasivo)" value={cop(patri)} tone={patri < 0 ? 'bad' : 'good'} big />
             <Tile label="Ingresos del periodo" value={cop(bal.periodo.ingresos)} sub={`${bal.periodo.nIngresos} registros`} tone="good" />
             <Tile label="Egresos del periodo" value={cop(bal.periodo.egresos)} sub={`Resultado: ${cop(bal.periodo.resultado)}`} />
@@ -322,7 +268,8 @@ export default function Balance() {
             <Panel title="Deuda" subtitle="Lo que te deben frente a lo que debes.">
               <dl className="space-y-2 text-[15px]">
                 <div className="flex justify-between"><dt className="text-ink-soft">Me deben (por cobrar)</dt><dd className="font-semibold text-ingreso">{cop(bal.deuda.meDeben)}</dd></div>
-                <div className="flex justify-between"><dt className="text-ink-soft">Debo (pasivo)</dt><dd className="font-semibold text-warn">{cop(bal.deuda.debo)}</dd></div>
+                <div className="flex justify-between"><dt className="text-ink-soft">Debo a personas</dt><dd className="font-semibold text-warn">{cop(bal.pasivo.deudas)}</dd></div>
+                <div className="flex justify-between"><dt className="text-ink-soft">Debo a proveedores <Link to="/por-pagar" className="text-xs underline underline-offset-2 ml-1">ver</Link></dt><dd className="font-semibold text-warn">{cop(bal.pasivo.proveedores)}</dd></div>
                 <div className="flex justify-between border-t border-line pt-2"><dt className="font-medium">Neta</dt><dd className={`font-display font-bold ${neta < 0 ? 'text-alert' : 'text-ingreso'}`}>{cop(neta)}</dd></div>
               </dl>
             </Panel>
@@ -349,7 +296,7 @@ export default function Balance() {
 
       <Panel
         title="Pasivos: deudas con personas"
-        subtitle="Cada deuda con lo abonado y lo que falta."
+        subtitle="Préstamos y deudas con personas. Las facturas de proveedores están en Cuentas → Por pagar."
         action={
           <div className="flex flex-wrap gap-2">
             <button className="btn btn-quiet !min-h-[44px] text-sm" onClick={exportar} disabled={!pas?.rows.length}><IconDownload /> Descargar</button>
@@ -494,7 +441,7 @@ export default function Balance() {
       )}
       {modal?.kind === 'abono' && (
         <Modal title="Registrar abono" onClose={close}>
-          <AbonoForm row={modal.row} onSaved={done} onCancel={close} />
+          <AbonoForm row={modal.row} url={`/api/pasivos/${modal.row.id}/pago`} onSaved={done} onCancel={close} />
         </Modal>
       )}
       {modal?.kind === 'activo' && (

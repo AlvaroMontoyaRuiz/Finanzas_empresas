@@ -64,7 +64,7 @@ export default function Impuestos() {
 
       {d && (
         <>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 settle">
+          <div className="grid sm:grid-cols-2 2xl:grid-cols-4 gap-4 settle">
             <Tile label={`IVA pagado en ${anio}`} value={cop(tot.iva)} sub="IVA en compras (posible IVA descontable)" />
             <Tile label="Compras sin IVA (base)" value={cop(tot.base)} sub={`Total con IVA ${cop(tot.total)}`} />
             <Tile label="Compras exentas / sin IVA" value={cop(tot.sin)} sub="Gastos con tarifa 0 %" />

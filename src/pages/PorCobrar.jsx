@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, qs } from '../lib/api.js';
 import { useApp } from '../App.jsx';
 import { cop, num, shortDay, daysSince, localToday } from '../lib/format.js';
+import CuentasTabs from '../components/CuentasTabs.jsx';
 import { Panel, PageHeader, Skeleton, EmpresaTag, EstadoBadge, Segmented } from '../components/ui.jsx';
 import PagoButton from '../components/Pago.jsx';
 
@@ -69,6 +70,7 @@ export default function PorCobrar() {
 
   return (
     <div className="space-y-5">
+      <CuentasTabs />
       <PageHeader
         title="Por cobrar"
         subtitle="Los despostes y ventas que todavía no se han pagado. Cuando te paguen, toca “Marcar pagado”."

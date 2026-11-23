@@ -156,6 +156,22 @@ async function migrate(env) {
       if (!/duplicate column/i.test(String(e && e.message ? e.message : e))) throw e;
     }
   }
+
+  // pasivos.tipo: 'deuda' (money owed to a person, Balance page) or 'proveedor' (a supplier bill paid in abonos,
+  // Por pagar page). pasivos.factura: the supplier's bill number.
+  const pas = (await env.DB.prepare(`PRAGMA table_info(pasivos)`).all()).results || [];
+  for (const [col, ddl] of [
+    ['tipo', `ALTER TABLE pasivos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'deuda'`],
+    ['factura', `ALTER TABLE pasivos ADD COLUMN factura TEXT`],
+  ]) {
+    if (pas.some((c) => c.name === col)) continue;
+    try {
+      await env.DB.prepare(ddl).run();
+    } catch (e) {
+      if (!/duplicate column/i.test(String(e && e.message ? e.message : e))) throw e;
+    }
+  }
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_pas_tipo ON pasivos(tipo, empresa_id)`).run();
 }
 
 let ready = false;

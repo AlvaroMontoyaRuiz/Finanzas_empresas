@@ -4,7 +4,7 @@ import { updateSql } from '../../_lib/records.js';
 import { parsePasivo } from './index.js';
 
 export const onRequestPut = route(async ({ env, body, params }) => {
-  const row = await first(env, `SELECT * FROM pasivos WHERE id = ?`, [Number(params.id)]);
+  const row = await first(env, `SELECT * FROM pasivos WHERE id = ? AND tipo = 'deuda'`, [Number(params.id)]);
   if (!row) fail('not_found', 404);
   const v = await parsePasivo(env, body);
   const ab = await first(env, `SELECT COALESCE(SUM(monto),0) AS s FROM pasivo_pagos WHERE pasivo_id = ?`, [row.id]);
