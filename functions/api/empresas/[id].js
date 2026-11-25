@@ -9,9 +9,9 @@ export const onRequestPut = route(async ({ env, body, params }) => {
   const color = /^#[0-9a-fA-F]{6}$/.test(body.color || '') ? body.color : e.color;
   const dup = await env.DB.prepare(`SELECT id FROM empresas WHERE lower(nombre) = lower(?) AND id <> ?`).bind(nombre, e.id).first();
   if (dup) fail('nombre_taken');
-  // Recording only the day's total (with desposte por cobrar) needs the por-cobrar option on.
+  // ingreso_diario = record only the day's total. If cobra_pendientes is also on, despostes (por cobrar) are available too.
   const diario = body.ingreso_diario ? 1 : 0;
-  let cobra = body.cobra_pendientes || diario ? 1 : 0;
+  const cobra = body.cobra_pendientes ? 1 : 0;
   if (!cobra) {
     // Can't switch off while sales are still waiting to be paid.
     const p = await env.DB.prepare(`SELECT COUNT(*) AS n FROM ingresos WHERE empresa_id = ? AND estado = 'pendiente'`).bind(e.id).first();

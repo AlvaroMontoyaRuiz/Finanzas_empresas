@@ -36,6 +36,7 @@ function parseIngresoDia(empresa, b) {
   if (!(monto > 0)) fail('bad_monto');
   const pedido = text(b.medio_pago, 30).toLowerCase();
   const medio = MEDIOS_DIA.includes(pedido) ? pedido : 'efectivo';
+  if (medio === 'desposte' && !empresa.cobra_pendientes) fail('sin_despostes'); // despostes only where sales can be por cobrar (Carnicería)
   const total = Math.round(monto);
   let estado = 'pagado';
   let fecha_pago = b.fecha;

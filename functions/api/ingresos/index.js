@@ -59,6 +59,7 @@ export const onRequestPost = route(async ({ env, user, body }) => {
     let desp = Array.isArray(body.despostes) ? body.despostes : [];
     if (!desp.length && number(montos.desposte) > 0) desp = [{ valor: montos.desposte }]; // older form
     desp = desp.filter((d) => d && (number(d.valor) > 0 || number(d.efectivo) > 0));
+    if (desp.length && !empresa.cobra_pendientes) fail('sin_despostes');
     if (desp.length > MAX_DESPOSTES_DIA) fail('max_despostes', 400, { ya: 0 });
     if (desp.length) {
       const ya = await countDespostes(env, empresa.id, body.fecha);

@@ -23,6 +23,7 @@ const ERRORS_ES = {
   bad_concepto: 'Escribe el concepto (qué se vendió o se compró).',
   bad_monto: 'Escribe un valor mayor que 0.',
   sin_montos: 'Escribe el valor de al menos una forma de pago (efectivo, Nequi o desposte).',
+  sin_despostes: 'Esta empresa no maneja despostes.',
   bad_abono: 'El efectivo recibido no es válido.',
   abono_mayor_total: 'El efectivo recibido no puede ser mayor que el valor del desposte.',
   max_despostes: (d) => `Máximo 5 despostes por día${d.ya ? ` (ese día ya hay ${d.ya})` : ''}.`,

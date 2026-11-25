@@ -59,7 +59,7 @@ export default function Ingresos() {
     <div className="space-y-5">
       <PageHeader
         title="Ingresos"
-        subtitle="Todo lo que entra a las empresas. La carnicería solo registra el total de cada día."
+        subtitle="Todo lo que entra a las empresas. Carnicería y Fruver solo registran el total de cada día."
         action={
           <button className="btn btn-primary" onClick={() => setEditing('new')}>
             <IconPlus /> Nuevo ingreso

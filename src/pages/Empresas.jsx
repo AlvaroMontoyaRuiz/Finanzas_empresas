@@ -58,14 +58,14 @@ function EmpresaCard({ e, onSaved }) {
         </label>
       </div>
       <label className="mt-4 flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" className="mt-1 w-5 h-5 accent-[#1F7A4D]" checked={f.ingreso_diario} onChange={(x) => setF({ ...f, ingreso_diario: x.target.checked, cobra_pendientes: x.target.checked ? true : f.cobra_pendientes })} />
+        <input type="checkbox" className="mt-1 w-5 h-5 accent-[#1F7A4D]" checked={f.ingreso_diario} onChange={(x) => setF({ ...f, ingreso_diario: x.target.checked })} />
         <span>
           <span className="font-medium">Solo registra el total de cada día</span>
-          <span className="block text-sm text-ink-soft">Sin cliente, cantidad ni precio. Se anota lo que entró en Efectivo, Nequi y Desposte (el desposte queda por cobrar).</span>
+          <span className="block text-sm text-ink-soft">Sin cliente, cantidad ni precio. Se anota lo que entró en Efectivo y Nequi. Si además puede dejar ventas por cobrar, también se anotan despostes (hasta 5 por día).</span>
         </span>
       </label>
       <label className="mt-4 flex items-start gap-3 cursor-pointer">
-        <input type="checkbox" className="mt-1 w-5 h-5 accent-[#1F7A4D]" checked={f.cobra_pendientes} disabled={f.ingreso_diario} onChange={(x) => setF({ ...f, cobra_pendientes: x.target.checked })} />
+        <input type="checkbox" className="mt-1 w-5 h-5 accent-[#1F7A4D]" checked={f.cobra_pendientes} onChange={(x) => setF({ ...f, cobra_pendientes: x.target.checked })} />
         <span>
           <span className="font-medium">Puede dejar ventas pendientes por cobrar</span>
           <span className="block text-sm text-ink-soft">Al registrar un ingreso se elige si ya se pagó o si está pendiente. Aparece en “Por cobrar”.</span>

@@ -158,6 +158,14 @@ async function migrate(env) {
     }
   }
 
+  // One-time setting changes (each runs once, so later changes made in the Empresas page are respected).
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS migraciones (nombre TEXT PRIMARY KEY)`).run();
+  const marca = await env.DB.prepare(`INSERT OR IGNORE INTO migraciones (nombre) VALUES ('fruver_ingreso_diario')`).run();
+  if (marca.meta.changes) {
+    // Fruver records the day's Efectivo and Nequi, like Carnicería, but without despostes (no por cobrar).
+    await env.DB.prepare(`UPDATE empresas SET ingreso_diario = 1 WHERE slug = 'fruver'`).run();
+  }
+
   // pasivos.tipo: 'deuda' (money owed to a person, Balance page) or 'proveedor' (a supplier bill paid in abonos,
   // Por pagar page). pasivos.factura: the supplier's bill number.
   const pas = (await env.DB.prepare(`PRAGMA table_info(pasivos)`).all()).results || [];

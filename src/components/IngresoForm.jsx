@@ -85,7 +85,7 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
   const nuevoDia = !row;
   const mE = pos(parseNum(f.m_efectivo));
   const mN = pos(parseNum(f.m_nequi));
-  const desp = (f.despostes || []).map((d) => {
+  const desp = (cobra ? f.despostes || [] : []).map((d) => {
     const valor = parseNum(d.valor);
     const ef = d.efectivo === '' ? 0 : parseNum(d.efectivo);
     const vacio = d.valor === '' && d.efectivo === '';
@@ -185,6 +185,7 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
                 </Field>
               </div>
 
+              {cobra && (
               <div className="rounded-xl border border-[#E8C984] bg-warn-bg/40 p-4 space-y-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h4 className="font-display font-semibold text-warn">Despostes del día</h4>
@@ -246,20 +247,36 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
                 {cupo === 0 && <p className="text-sm text-alert">Ese día ya tiene {MAX_DESPOSTES} despostes.</p>}
                 {despUsados.length > cupo && cupo > 0 && <p className="text-sm text-alert">Solo puedes agregar {cupo} {cupo === 1 ? 'desposte' : 'despostes'} ese día.</p>}
               </div>
+              )}
 
               <div className="rounded-xl bg-field px-4 py-3 grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div className="text-xs text-ink-soft">Total del día</div>
                   <div className="font-display font-bold text-lg text-ingreso">{totalDia > 0 ? cop(totalDia) : '—'}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Entró en efectivo</div>
-                  <div className="font-semibold">{enCaja > 0 ? cop(enCaja) : '—'}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-ink-soft">Queda por cobrar</div>
-                  <div className={`font-semibold ${quedaPorCobrar > 0 ? 'text-warn' : ''}`}>{quedaPorCobrar > 0 ? cop(quedaPorCobrar) : '—'}</div>
-                </div>
+                {cobra ? (
+                  <>
+                    <div>
+                      <div className="text-xs text-ink-soft">Entró en efectivo</div>
+                      <div className="font-semibold">{enCaja > 0 ? cop(enCaja) : '—'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-ink-soft">Queda por cobrar</div>
+                      <div className={`font-semibold ${quedaPorCobrar > 0 ? 'text-warn' : ''}`}>{quedaPorCobrar > 0 ? cop(quedaPorCobrar) : '—'}</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="text-xs text-ink-soft">Efectivo</div>
+                      <div className="font-semibold">{mE > 0 ? cop(mE) : '—'}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-ink-soft">Nequi</div>
+                      <div className="font-semibold">{mN > 0 ? cop(mN) : '—'}</div>
+                    </div>
+                  </>
+                )}
               </div>
             </>
           ) : (
@@ -272,7 +289,7 @@ export default function IngresoForm({ row, onSaved, onCancel }) {
                   <select id="i-medio-dia" className="field" value={f.medio_dia} onChange={set('medio_dia')}>
                     <option value="efectivo">Efectivo</option>
                     <option value="nequi">Nequi</option>
-                    <option value="desposte">Desposte (por cobrar)</option>
+                    {(cobra || f.medio_dia === 'desposte') && <option value="desposte">Desposte (por cobrar)</option>}
                   </select>
                 </Field>
               </div>
